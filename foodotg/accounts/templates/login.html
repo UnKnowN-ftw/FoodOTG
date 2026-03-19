@@ -1,0 +1,45 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'css/login_styles.css' %}">
+
+<div class="container">
+    <h2>Welcome to FoodOTG</h2>
+
+    <div class="input-group">
+        <input type="text" id="username" placeholder="Username">
+    </div>
+
+    <div class="input-group">
+        <input type="password" id="password" placeholder="Password">
+    </div>
+
+    <button onclick="login()">Login</button>
+
+    <p class="footer-text">
+        Don’t have an account? <a href="#">Register</a>
+    </p>
+</div>
+
+<script>
+async function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const response = await fetch("/api/login/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+
+    if (data.access) {
+        localStorage.setItem("token", data.access);
+        window.location.href = "/dashboard/";
+    } else {
+        alert("Login failed. Please check your credentials.");
+    }
+}
+</script>

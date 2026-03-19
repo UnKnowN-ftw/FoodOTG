@@ -1,0 +1,36 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FoodOTG Dashboard</title>
+
+    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <h2>Dashboard</h2>
+
+    <p style="text-align:center; margin-bottom:20px;">
+        You are logged in successfully! Welcome to your dashboard.
+    </p>
+
+    <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+if (!localStorage.getItem("token")) {
+    window.location.href = "/login-page/";
+}
+
+function logout() {
+    localStorage.removeItem("token");
+    alert("Logged out successfully");
+
+    window.location.href = "/login/";
+}
+</script>
+
+</body>
+</html>
