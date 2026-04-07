@@ -32,7 +32,8 @@ class Deal(models.Model):
 # =========================
 class Preference(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    budget_range = models.CharField(max_length=50)
+    budget_range = models.CharField(max_length=50, blank=True, null=True)
+    taste_preferences = models.JSONField(default=list, blank=True)
 
     def __str__(self):
         return self.user.username

@@ -56,4 +56,4 @@ class DealSerializer(serializers.ModelSerializer):
 class PreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Preference
-        fields = '__all__'
+        fields = ['id', 'user', 'budget_range', 'taste_preferences']

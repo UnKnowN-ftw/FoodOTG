@@ -3,180 +3,374 @@
 <html lang="en">
 
 <head>
-    <title>FoodOTG | Dashboard</title>
-    <link rel="stylesheet" href="{% static 'css/dashboard_styles.css' %}">
+<meta charset="UTF-8">
+<title>FoodOTG | Dashboard</title>
+<link rel="stylesheet" href="{% static 'css/dashboard_styles.css' %}">
 </head>
+
 <body>
 
-<div class="container">
+<div class="dashboard-container">
 
-    <!-- HEADER -->
-    <div class="header">
-        <h2>FoodOTG Dashboard</h2>
-        <button onclick="logout()">Logout</button>
-    </div>
+<!-- HEADER -->
+<div class="header">
+<h1>FoodOTG Dashboard</h1>
+<button class="logout-btn" onclick="logout()">Logout</button>
+</div>
 
-    <!-- SEARCH -->
-    <div class="search-box">
-        <input type="text" id="search" placeholder="Search restaurants..." onkeyup="filterData()">
-    </div>
 
-    <!-- FILTERS -->
-    <div class="filters">
-        <select id="category" onchange="filterData()">
-            <option value="All">All Categories</option>
-        </select>
+<!-- SEARCH -->
+<div class="search-container">
+<input type="text" id="search" placeholder="Search restaurants..." onkeyup="filterData()">
+</div>
 
-        <select id="location" onchange="filterData()">
-            <option value="All">All Locations</option>
-        </select>
-    </div>
 
-    <!-- DEALS -->
-    <div class="section">
-        <h3>Active Deals</h3>
-        <div id="deals" class="grid"></div>
-    </div>
+<!-- FILTERS -->
+<div class="filters">
 
-    <!-- RESTAURANTS -->
-    <div class="section">
-        <h3>Restaurants</h3>
-        <div id="restaurants" class="grid"></div>
-    </div>
+<select id="category" onchange="filterData()">
+<option value="All">All Categories</option>
+</select>
+
+<select id="location" onchange="filterData()">
+<option value="All">All Locations</option>
+</select>
 
 </div>
 
+
+<!-- DEALS -->
+<div class="section">
+<h2>🔥 Active Deals</h2>
+<div id="deals" class="grid"></div>
+</div>
+
+
+<!-- RESTAURANTS -->
+<div class="section">
+<h2>🍽 Restaurants</h2>
+<div id="restaurants" class="grid"></div>
+</div>
+
+
+<!-- PREFERENCES -->
+<div class="section preferences-section">
+
+<button id="toggle-preferences" class="preferences-btn">
+⭐ Set Taste Preferences
+</button>
+
+<div id="preferences-panel" class="preferences-panel">
+
+<!-- Spice -->
+<h3>🔥 Spice Level</h3>
+<div class="pref-group" id="spice-level">
+<button class="pref-btn">Mild</button>
+<button class="pref-btn">Medium</button>
+<button class="pref-btn">Spicy</button>
+<button class="pref-btn">Extra Spicy</button>
+</div>
+
+<!-- Food Type -->
+<h3>🌿 Food Type</h3>
+<div class="pref-group" id="dietary">
+<button class="pref-btn">None</button>
+<button class="pref-btn">Fast-Food</button>
+<button class="pref-btn">Halal</button>
+<button class="pref-btn">Dessert</button>
+<button class="pref-btn">Seafood</button>
+</div>
+
+<!-- Budget -->
+<h3>💰 Budget Range</h3>
+<div class="pref-group" id="budget">
+<button class="pref-btn">৳</button>
+<button class="pref-btn">৳৳</button>
+<button class="pref-btn">৳৳৳</button>
+</div>
+
+<p class="budget-info">
+৳ = Budget friendly • ৳৳ = Moderate • ৳৳৳ = Premium
+</p>
+
+<div class="pref-actions">
+<button id="save-preferences" class="save-btn">Save Preferences</button>
+<button id="cancel-preferences" class="cancel-btn">Cancel</button>
+</div>
+
+</div>
+</div>
+
+</div>
+
+
 <script>
-/* =========================
-   AUTH CHECK
-========================= */
-if (!localStorage.getItem("token")) {
-    window.location.href = "/login/";
-}
 
 /* =========================
-   GLOBAL DATA
+AUTH CHECK
 ========================= */
+
+if (!localStorage.getItem("token")){
+window.location.href="/login/";
+}
+
+
+/* =========================
+DEMO DATA
+========================= */
+
+const demoRestaurants = [
+
+{
+name:"Burger Hub",
+category:"Fast-Food",
+address:"Dhanmondi",
+price_range:"৳৳"
+},
+
+{
+name:"Sea Pearl",
+category:"Seafood",
+address:"Gulshan",
+price_range:"৳৳৳"
+},
+
+{
+name:"Sweet Heaven",
+category:"Dessert",
+address:"Banani",
+price_range:"৳"
+},
+
+{
+name:"Halal Spice Kitchen",
+category:"Halal",
+address:"Mirpur",
+price_range:"৳৳"
+}
+
+];
+
+
+const demoDeals = [
+
+{
+title:"20% Off Burgers",
+description:"Get 20% off on all burgers today!",
+restaurant_name:"Burger Hub"
+},
+
+{
+title:"Free Dessert",
+description:"Free dessert with seafood platter.",
+restaurant_name:"Sea Pearl"
+},
+
+{
+title:"Buy 1 Get 1 Cake",
+description:"Buy one cake and get one free!",
+restaurant_name:"Sweet Heaven"
+}
+
+];
+
+
 let businesses = [];
 let deals = [];
 let filteredBusinesses = [];
 
+
 /* =========================
-   LOAD DATA FROM API
+LOAD DASHBOARD
 ========================= */
-async function loadDashboard() {
-    try {
-        const response = await fetch("/api/dashboard/", {
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            }
-        });
-        const data = await response.json();
 
-        businesses = data.businesses || [];
-        deals = data.deals || [];
-        filteredBusinesses = businesses;
+function loadDashboard(){
 
-        populateFilters();
-        renderData();
+/* Normally this would come from API */
 
-    } catch (error) {
-        console.error("Error loading dashboard:", error);
-    }
+businesses = demoRestaurants;
+deals = demoDeals;
+
+filteredBusinesses = businesses;
+
+populateFilters();
+renderData();
+
 }
 
+
 /* =========================
-   POPULATE FILTER OPTIONS
+POPULATE FILTERS
 ========================= */
-function populateFilters() {
-    const categorySet = new Set();
-    const locationSet = new Set();
 
-    businesses.forEach(b => {
-        categorySet.add(b.category);
-        locationSet.add(b.address);
-    });
+function populateFilters(){
 
-    const categorySelect = document.getElementById("category");
-    const locationSelect = document.getElementById("location");
+const categorySet = new Set();
+const locationSet = new Set();
 
-    categorySet.forEach(cat => {
-        categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
-    });
+businesses.forEach(b => {
+categorySet.add(b.category);
+locationSet.add(b.address);
+});
 
-    locationSet.forEach(loc => {
-        locationSelect.innerHTML += `<option value="${loc}">${loc}</option>`;
-    });
+const categorySelect = document.getElementById("category");
+const locationSelect = document.getElementById("location");
+
+categorySet.forEach(cat=>{
+categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+});
+
+locationSet.forEach(loc=>{
+locationSelect.innerHTML += `<option value="${loc}">${loc}</option>`;
+});
+
 }
 
+
 /* =========================
-   RENDER DATA
+RENDER DATA
 ========================= */
-function renderData() {
-    const restaurantDiv = document.getElementById("restaurants");
-    const dealsDiv = document.getElementById("deals");
 
-    restaurantDiv.innerHTML = "";
-    dealsDiv.innerHTML = "";
+function renderData(){
 
-    if (filteredBusinesses.length === 0) {
-        restaurantDiv.innerHTML = "<p>No restaurants found.</p>";
-        return;
-    }
+const restaurantDiv = document.getElementById("restaurants");
+const dealsDiv = document.getElementById("deals");
 
-    filteredBusinesses.forEach(b => {
-        restaurantDiv.innerHTML += `
-            <div class="card">
-                <h4>${b.name}</h4>
-                <p>${b.category}</p>
-                <p>${b.address}</p>
-                <small>${b.price_range}</small>
-            </div>
-        `;
-    });
+restaurantDiv.innerHTML="";
+dealsDiv.innerHTML="";
 
-    deals.forEach(d => {
-        dealsDiv.innerHTML += `
-            <div class="card deal">
-                <h4>${d.title}</h4>
-                <p>${d.description}</p>
-                <small>${d.restaurant_name}</small>
-            </div>
-        `;
-    });
+
+filteredBusinesses.forEach(b=>{
+
+restaurantDiv.innerHTML += `
+<div class="card">
+<h4>${b.name}</h4>
+<p>${b.category}</p>
+<p>${b.address}</p>
+<small>${b.price_range}</small>
+</div>
+`;
+
+});
+
+
+deals.forEach(d=>{
+
+dealsDiv.innerHTML += `
+<div class="card deal">
+<h4>${d.title}</h4>
+<p>${d.description}</p>
+<small>${d.restaurant_name}</small>
+</div>
+`;
+
+});
+
 }
 
+
 /* =========================
-   FILTER LOGIC
+FILTER DATA
 ========================= */
-function filterData() {
-    const search = document.getElementById("search").value.toLowerCase();
-    const category = document.getElementById("category").value;
-    const location = document.getElementById("location").value;
 
-    filteredBusinesses = businesses.filter(b =>
-        (b.name.toLowerCase().includes(search) ||
-         b.category.toLowerCase().includes(search)) &&
-        (category === "All" || b.category === category) &&
-        (location === "All" || b.address.includes(location))
-    );
+function filterData(){
 
-    renderData();
+const search = document.getElementById("search").value.toLowerCase();
+const category = document.getElementById("category").value;
+const location = document.getElementById("location").value;
+
+filteredBusinesses = businesses.filter(b =>
+
+(b.name.toLowerCase().includes(search) ||
+b.category.toLowerCase().includes(search))
+
+&& (category==="All" || b.category===category)
+
+&& (location==="All" || b.address===location)
+
+);
+
+renderData();
+
 }
 
-/* =========================
-   LOGOUT
-========================= */
-function logout() {
-    localStorage.removeItem("token");
-    alert("Logged out successfully");
-    window.location.href = "/login/";
-}
 
 /* =========================
-   INIT
+TOGGLE PREFERENCES
 ========================= */
+
+const toggleBtn = document.getElementById("toggle-preferences");
+const panel = document.getElementById("preferences-panel");
+
+toggleBtn.addEventListener("click", () => {
+
+if(panel.style.maxHeight){
+panel.style.maxHeight=null;
+}else{
+panel.style.maxHeight=panel.scrollHeight+"px";
+}
+
+});
+
+
+/* =========================
+SAVE
+========================= */
+
+document.getElementById("save-preferences").addEventListener("click", () => {
+
+alert("Preferences Saved!");
+panel.style.maxHeight=null;
+
+});
+
+
+/* =========================
+CANCEL
+========================= */
+
+document.getElementById("cancel-preferences").addEventListener("click", () => {
+
+panel.style.maxHeight=null;
+
+});
+
+
+/* =========================
+BUTTON ACTIVE STATE
+========================= */
+
+document.querySelectorAll(".pref-group").forEach(group => {
+
+group.addEventListener("click", e => {
+
+if(e.target.classList.contains("pref-btn")){
+e.target.classList.toggle("active");
+}
+
+});
+
+});
+
+
+/* =========================
+LOGOUT
+========================= */
+
+function logout(){
+
+localStorage.removeItem("token");
+window.location.href="/login/";
+
+}
+
+
+/* =========================
+INIT
+========================= */
+
 loadDashboard();
+
 </script>
 
 </body>
