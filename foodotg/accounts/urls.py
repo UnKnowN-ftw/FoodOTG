@@ -10,4 +10,5 @@ urlpatterns = [
 
     path('login/', views.login_page),
     path('dashboard/', views.dashboard),
+    path('api/dashboard/', views.dashboard_data),
 ]

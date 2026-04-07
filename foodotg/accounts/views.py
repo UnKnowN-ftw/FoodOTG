@@ -4,7 +4,9 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import render
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, RestaurantSerializer, DealSerializer
+from .models import Restaurant, Deal
+
 
 # =========================
 # 🔐 REGISTER API (FR-01)
@@ -60,3 +62,16 @@ def register_page(request):
 
 def dashboard(request):
     return render(request, 'dashboard.html')
+
+@api_view(['GET'])
+def dashboard_data(request):
+    restaurants = Restaurant.objects.all()
+    deals = Deal.objects.filter(active_status=True)
+
+    restaurant_data = RestaurantSerializer(restaurants, many=True).data
+    deal_data = DealSerializer(deals, many=True).data
+
+    return Response({
+        "businesses": restaurant_data,
+        "deals": deal_data
+    })

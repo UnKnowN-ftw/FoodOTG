@@ -1,35 +1,182 @@
 {% load static %}
-
 <!DOCTYPE html>
-<html>
-<head>
-    <title>FoodOTG Dashboard</title>
+<html lang="en">
 
-    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+<head>
+    <title>FoodOTG | Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard_styles.css' %}">
 </head>
 <body>
 
 <div class="container">
-    <h2>Dashboard</h2>
 
-    <p style="text-align:center; margin-bottom:20px;">
-        You are logged in successfully! Welcome to your dashboard.
-    </p>
+    <!-- HEADER -->
+    <div class="header">
+        <h2>FoodOTG Dashboard</h2>
+        <button onclick="logout()">Logout</button>
+    </div>
 
-    <button onclick="logout()">Logout</button>
+    <!-- SEARCH -->
+    <div class="search-box">
+        <input type="text" id="search" placeholder="Search restaurants..." onkeyup="filterData()">
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters">
+        <select id="category" onchange="filterData()">
+            <option value="All">All Categories</option>
+        </select>
+
+        <select id="location" onchange="filterData()">
+            <option value="All">All Locations</option>
+        </select>
+    </div>
+
+    <!-- DEALS -->
+    <div class="section">
+        <h3>Active Deals</h3>
+        <div id="deals" class="grid"></div>
+    </div>
+
+    <!-- RESTAURANTS -->
+    <div class="section">
+        <h3>Restaurants</h3>
+        <div id="restaurants" class="grid"></div>
+    </div>
+
 </div>
 
 <script>
+/* =========================
+   AUTH CHECK
+========================= */
 if (!localStorage.getItem("token")) {
-    window.location.href = "/login-page/";
+    window.location.href = "/login/";
 }
 
+/* =========================
+   GLOBAL DATA
+========================= */
+let businesses = [];
+let deals = [];
+let filteredBusinesses = [];
+
+/* =========================
+   LOAD DATA FROM API
+========================= */
+async function loadDashboard() {
+    try {
+        const response = await fetch("/api/dashboard/", {
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("token")
+            }
+        });
+        const data = await response.json();
+
+        businesses = data.businesses || [];
+        deals = data.deals || [];
+        filteredBusinesses = businesses;
+
+        populateFilters();
+        renderData();
+
+    } catch (error) {
+        console.error("Error loading dashboard:", error);
+    }
+}
+
+/* =========================
+   POPULATE FILTER OPTIONS
+========================= */
+function populateFilters() {
+    const categorySet = new Set();
+    const locationSet = new Set();
+
+    businesses.forEach(b => {
+        categorySet.add(b.category);
+        locationSet.add(b.address);
+    });
+
+    const categorySelect = document.getElementById("category");
+    const locationSelect = document.getElementById("location");
+
+    categorySet.forEach(cat => {
+        categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    });
+
+    locationSet.forEach(loc => {
+        locationSelect.innerHTML += `<option value="${loc}">${loc}</option>`;
+    });
+}
+
+/* =========================
+   RENDER DATA
+========================= */
+function renderData() {
+    const restaurantDiv = document.getElementById("restaurants");
+    const dealsDiv = document.getElementById("deals");
+
+    restaurantDiv.innerHTML = "";
+    dealsDiv.innerHTML = "";
+
+    if (filteredBusinesses.length === 0) {
+        restaurantDiv.innerHTML = "<p>No restaurants found.</p>";
+        return;
+    }
+
+    filteredBusinesses.forEach(b => {
+        restaurantDiv.innerHTML += `
+            <div class="card">
+                <h4>${b.name}</h4>
+                <p>${b.category}</p>
+                <p>${b.address}</p>
+                <small>${b.price_range}</small>
+            </div>
+        `;
+    });
+
+    deals.forEach(d => {
+        dealsDiv.innerHTML += `
+            <div class="card deal">
+                <h4>${d.title}</h4>
+                <p>${d.description}</p>
+                <small>${d.restaurant_name}</small>
+            </div>
+        `;
+    });
+}
+
+/* =========================
+   FILTER LOGIC
+========================= */
+function filterData() {
+    const search = document.getElementById("search").value.toLowerCase();
+    const category = document.getElementById("category").value;
+    const location = document.getElementById("location").value;
+
+    filteredBusinesses = businesses.filter(b =>
+        (b.name.toLowerCase().includes(search) ||
+         b.category.toLowerCase().includes(search)) &&
+        (category === "All" || b.category === category) &&
+        (location === "All" || b.address.includes(location))
+    );
+
+    renderData();
+}
+
+/* =========================
+   LOGOUT
+========================= */
 function logout() {
     localStorage.removeItem("token");
     alert("Logged out successfully");
-
     window.location.href = "/login/";
 }
+
+/* =========================
+   INIT
+========================= */
+loadDashboard();
 </script>
 
 </body>
