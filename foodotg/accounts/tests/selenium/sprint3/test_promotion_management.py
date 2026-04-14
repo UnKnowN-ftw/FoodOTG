@@ -10,6 +10,7 @@ class PromotionTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="promo@example.com",
+            email="promo@example.com",
             password="testpass123"
         )
         UserProfile.objects.create(user=self.user, role="business_owner")
@@ -26,25 +27,30 @@ class PromotionTests(APITestCase):
             price_range="৳৳"
         )
 
-    def test_add_promotion(self):
-        response = self.client.post(
-            f"/api/restaurants/{self.restaurant.id}/promotions/add/",
-            {
-                "title": "50% OFF",
-                "description": "Big discount"
-            },
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.token}"
-        )
+def test_add_promotion(self):
+    response = self.client.post(
+        f"/api/restaurants/{self.restaurant.id}/promotions/add/",
+        {
+            "title": "50% OFF",
+            "description": "Big discount",
+            "active_status": True
+        },
+        format="json",
+        HTTP_AUTHORIZATION=f"Bearer {self.token}"
+    )
 
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Deal.objects.count(), 1)
+    print("STATUS:", response.status_code)
+    print("DATA:", response.data)
 
+    self.assertEqual(response.status_code, 201)
+    self.assertEqual(Deal.objects.count(), 1)
+    
     def test_delete_promotion(self):
         deal = Deal.objects.create(
             restaurant=self.restaurant,
             title="Test Deal",
-            description="Desc"
+            description="Desc",
+            active_status=True
         )
 
         response = self.client.delete(
