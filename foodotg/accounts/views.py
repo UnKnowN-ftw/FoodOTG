@@ -6,17 +6,24 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import render
 
-from .serializers import RegisterSerializer, RestaurantSerializer, DealSerializer, MenuItemSerializer
+from .serializers import (
+    RegisterSerializer,
+    RestaurantSerializer,
+    DealSerializer,
+    MenuItemSerializer,
+)
 from .models import Restaurant, Deal, Preference, UserProfile, MenuItem
 
 
+# =========================
+# AUTH APIs
+# =========================
 @api_view(['POST'])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
         return Response({"message": "Registration is Complete"}, status=status.HTTP_201_CREATED)
-
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -50,6 +57,9 @@ def user_logout(request):
     return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
 
 
+# =========================
+# PREFERENCE API
+# =========================
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_preferences(request):
@@ -66,26 +76,7 @@ def save_preferences(request):
         "preferences": pref_obj.taste_preferences,
         "budget_range": pref_obj.budget_range
     })
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def search_restaurants(request):
-    query = request.GET.get('q', '')
-    category = request.GET.get('category', '')
-    location = request.GET.get('location', '')
 
-    restaurants = Restaurant.objects.all()
-
-    if query:
-        restaurants = restaurants.filter(name__icontains=query) | Restaurant.objects.filter(category__icontains=query)
-
-    if category and category != "All":
-        restaurants = restaurants.filter(category=category)
-
-    if location and location != "All":
-        restaurants = restaurants.filter(address__icontains=location)
-
-    serializer = RestaurantSerializer(restaurants.distinct(), many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
 
 # =========================
 # PAGE VIEWS
@@ -153,6 +144,31 @@ def dashboard_data(request):
 
 
 # =========================
+# SEARCH API
+# =========================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_restaurants(request):
+    query = request.GET.get('q', '')
+    category = request.GET.get('category', '')
+    location = request.GET.get('location', '')
+
+    restaurants = Restaurant.objects.all()
+
+    if query:
+        restaurants = Restaurant.objects.filter(name__icontains=query) | Restaurant.objects.filter(category__icontains=query)
+
+    if category and category != "All":
+        restaurants = restaurants.filter(category=category)
+
+    if location and location != "All":
+        restaurants = restaurants.filter(address__icontains=location)
+
+    serializer = RestaurantSerializer(restaurants.distinct(), many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# =========================
 # BUSINESS DASHBOARD DATA
 # =========================
 @api_view(['GET'])
@@ -177,6 +193,10 @@ def add_restaurant(request):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# =========================
+# MENU MANAGEMENT APIs
+# =========================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def restaurant_menu_items(request, restaurant_id):
@@ -232,3 +252,104 @@ def delete_menu_item(request, item_id):
 
     item.delete()
     return Response({"message": "Menu item deleted successfully"}, status=status.HTTP_200_OK)
+
+
+# =========================
+# PROMOTION MANAGEMENT APIs
+# =========================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def restaurant_promotions(request, restaurant_id):
+    try:
+        restaurant = Restaurant.objects.get(id=restaurant_id, owner=request.user)
+    except Restaurant.DoesNotExist:
+        return Response(
+            {"error": "Restaurant not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    deals = Deal.objects.filter(restaurant=restaurant)
+    serializer = DealSerializer(deals, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_promotion(request, restaurant_id):
+    try:
+        restaurant = Restaurant.objects.get(id=restaurant_id, owner=request.user)
+    except Restaurant.DoesNotExist:
+        return Response(
+            {"error": "Restaurant not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    serializer = DealSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(restaurant=restaurant)
+        return Response(
+            {"message": "Promotion added successfully"},
+            status=status.HTTP_201_CREATED
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_promotion(request, deal_id):
+    try:
+        deal = Deal.objects.get(id=deal_id, restaurant__owner=request.user)
+    except Deal.DoesNotExist:
+        return Response(
+            {"error": "Promotion not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    serializer = DealSerializer(deal, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Promotion updated successfully"},
+            status=status.HTTP_200_OK
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_promotion(request, deal_id):
+    try:
+        deal = Deal.objects.get(id=deal_id, restaurant__owner=request.user)
+    except Deal.DoesNotExist:
+        return Response(
+            {"error": "Promotion not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    deal.delete()
+    return Response(
+        {"message": "Promotion deleted successfully"},
+        status=status.HTTP_200_OK
+    )
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_restaurants(request):
+    query = request.GET.get('q', '')
+    category = request.GET.get('category', '')
+    location = request.GET.get('location', '')
+
+    restaurants = Restaurant.objects.all()
+
+    if query:
+        restaurants = Restaurant.objects.filter(name__icontains=query) | Restaurant.objects.filter(category__icontains=query)
+
+    if category and category != "All":
+        restaurants = restaurants.filter(category=category)
+
+    if location and location != "All":
+        restaurants = restaurants.filter(address__icontains=location)
+
+    serializer = RestaurantSerializer(restaurants.distinct(), many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

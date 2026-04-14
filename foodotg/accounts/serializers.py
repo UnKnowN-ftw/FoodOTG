@@ -60,7 +60,8 @@ class DealSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Deal
-        fields = ['id', 'title', 'description', 'active_status', 'restaurant_name']
+        fields = ['id', 'restaurant', 'title', 'description', 'active_status', 'restaurant_name']
+        read_only_fields = ['restaurant_name']
 
 
 class PreferenceSerializer(serializers.ModelSerializer):
