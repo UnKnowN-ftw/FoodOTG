@@ -216,20 +216,30 @@ function renderData() {
 /* =========================
    FILTER DATA
 ========================= */
-function filterData() {
-    const search = document.getElementById("search").value.toLowerCase();
+async function filterData() {
+    const search = document.getElementById("search").value;
     const category = document.getElementById("category").value;
     const location = document.getElementById("location").value;
 
-    filteredBusinesses = businesses.filter((b) =>
-        (b.name.toLowerCase().includes(search) ||
-         b.category.toLowerCase().includes(search)) &&
-        (category === "All" || b.category === category) &&
-        (location === "All" || b.address === location)
-    );
+    try {
+        const response = await fetch(
+            `/api/search-restaurants/?q=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&location=${encodeURIComponent(location)}`,
+            {
+                headers: {
+                    "Authorization": "Bearer " + localStorage.getItem("token")
+                }
+            }
+        );
 
-    applyPreferenceFiltering();
-    renderData();
+        if (!response.ok) {
+            throw new Error("Search failed");
+        }
+
+        filteredBusinesses = await response.json();
+        renderData();
+    } catch (error) {
+        console.error("Search error:", error);
+    }
 }
 
 /* =========================

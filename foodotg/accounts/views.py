@@ -66,7 +66,26 @@ def save_preferences(request):
         "preferences": pref_obj.taste_preferences,
         "budget_range": pref_obj.budget_range
     })
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_restaurants(request):
+    query = request.GET.get('q', '')
+    category = request.GET.get('category', '')
+    location = request.GET.get('location', '')
 
+    restaurants = Restaurant.objects.all()
+
+    if query:
+        restaurants = restaurants.filter(name__icontains=query) | Restaurant.objects.filter(category__icontains=query)
+
+    if category and category != "All":
+        restaurants = restaurants.filter(category=category)
+
+    if location and location != "All":
+        restaurants = restaurants.filter(address__icontains=location)
+
+    serializer = RestaurantSerializer(restaurants.distinct(), many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 # =========================
 # PAGE VIEWS

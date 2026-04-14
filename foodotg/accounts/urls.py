@@ -15,6 +15,7 @@ urlpatterns = [
 
     path('api/business-dashboard/', views.business_dashboard_data),
     path('api/add-restaurant/', views.add_restaurant),
+	path('api/search-restaurants/', views.search_restaurants),
 
 
     path('api/restaurants/<int:restaurant_id>/menu/', views.restaurant_menu_items),
