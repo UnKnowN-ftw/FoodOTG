@@ -1,51 +1,34 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoodOTG | Login</title>
     <link rel="stylesheet" href="{% static 'css/login_styles.css' %}">
 </head>
+<body>
 
 <div class="container">
     <h2>Welcome to FoodOTG</h2>
+    <p class="subtext">Choose how you want to sign in</p>
 
     <div class="input-group">
-        <input type="text" id="username" placeholder="Username">
+        <button type="button" onclick="window.location.href='/customer-login/'">
+            Login as Customer
+        </button>
     </div>
 
     <div class="input-group">
-        <input type="password" id="password" placeholder="Password">
+        <button type="button" class="secondary-btn" onclick="window.location.href='/business-login/'">
+            Login as Business Owner
+        </button>
     </div>
-
-    <button onclick="login()">Login</button>
 
     <p class="footer-text">
         Don’t have an account? <a href="/register/">Register</a>
     </p>
 </div>
 
-<script>
-async function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-
-    const response = await fetch("/api/login/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ username, password })
-    });
-
-    const data = await response.json();
-
-    if (data.access) {
-        localStorage.setItem("token", data.access);
-        window.location.href = "/dashboard/";
-    } else {
-        alert("Login failed. Please check your credentials.");
-    }
-}
-</script>
+</body>
 </html>

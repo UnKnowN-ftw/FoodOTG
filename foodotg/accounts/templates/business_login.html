@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOTG | Business Login</title>
+    <link rel="stylesheet" href="{% static 'css/business_login_styles.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <h2>Business Owner Login</h2>
+
+    <div id="msg" class="error"></div>
+
+    <div class="input-group">
+        <input type="text" id="username" placeholder="Email Address">
+    </div>
+
+    <div class="input-group">
+        <input type="password" id="password" placeholder="Password">
+    </div>
+
+    <button onclick="loginBusiness()">Login</button>
+
+    <p class="footer-text">
+        Don’t have an account? <a href="/register/">Register</a>
+    </p>
+</div>
+
+<script>
+async function loginBusiness() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const msg = document.getElementById("msg");
+
+    msg.innerText = "";
+
+    if (!username || !password) {
+        msg.innerText = "All fields must be filled.";
+        return;
+    }
+
+    const response = await fetch("/api/login/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+
+    if (data.access) {
+        if (data.role !== "business_owner") {
+            msg.innerText = "This account is not registered as a business owner.";
+            return;
+        }
+
+        localStorage.setItem("token", data.access);
+        localStorage.setItem("refresh", data.refresh);
+        localStorage.setItem("role", data.role);
+
+        window.location.href = "/business-dashboard/";
+    } else {
+        msg.innerText = data.error || "Login failed. Please check your credentials.";
+    }
+}
+</script>
+
+</body>
+</html>

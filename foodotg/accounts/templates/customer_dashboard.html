@@ -1,0 +1,373 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOTG | Customer Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/customer_dashboard_styles.css' %}">
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <div class="header">
+        <h1>Customer Dashboard</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="search" placeholder="Search restaurants..." onkeyup="filterData()">
+    </div>
+
+    <div class="filters">
+        <select id="category" onchange="filterData()">
+            <option value="All">All Categories</option>
+        </select>
+
+        <select id="location" onchange="filterData()">
+            <option value="All">All Locations</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <h2>🔥 Active Deals</h2>
+        <div id="deals" class="grid"></div>
+    </div>
+
+    <div class="section">
+        <h2>🍽 Restaurants for You</h2>
+        <div id="restaurants" class="grid"></div>
+    </div>
+
+    <div class="section preferences-section">
+        <button id="toggle-preferences" class="preferences-btn" type="button">
+            ⭐ Set Taste Preferences
+        </button>
+
+        <div id="preferences-panel" class="preferences-panel">
+            <h3>🔥 Spice Level</h3>
+            <div class="pref-group" id="spice-level">
+                <button class="pref-btn" type="button">Mild</button>
+                <button class="pref-btn" type="button">Medium</button>
+                <button class="pref-btn" type="button">Spicy</button>
+                <button class="pref-btn" type="button">Extra Spicy</button>
+            </div>
+
+            <h3>🌿 Food Type</h3>
+            <div class="pref-group" id="dietary">
+                <button class="pref-btn" type="button">None</button>
+                <button class="pref-btn" type="button">Fast-Food</button>
+                <button class="pref-btn" type="button">Halal</button>
+                <button class="pref-btn" type="button">Dessert</button>
+                <button class="pref-btn" type="button">Seafood</button>
+            </div>
+
+            <h3>💰 Budget Range</h3>
+            <div class="pref-group" id="budget">
+                <button class="pref-btn" type="button">৳</button>
+                <button class="pref-btn" type="button">৳৳</button>
+                <button class="pref-btn" type="button">৳৳৳</button>
+            </div>
+
+            <p class="budget-info">
+                ৳ = Budget friendly • ৳৳ = Moderate • ৳৳৳ = Premium
+            </p>
+
+            <div class="pref-actions">
+                <button id="save-preferences" class="save-btn" type="button">Save Preferences</button>
+                <button id="cancel-preferences" class="cancel-btn" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+if (!localStorage.getItem("token")) {
+    window.location.href = "/customer-login/";
+}
+
+if (localStorage.getItem("role") !== "customer") {
+    alert("Access denied. This page is for customers only.");
+    window.location.href = "/business-dashboard/";
+}
+
+let businesses = [];
+let deals = [];
+let filteredBusinesses = [];
+let userPreferences = [];
+let userBudgetRange = "";
+
+/* =========================
+   LOAD DASHBOARD FROM DATABASE
+========================= */
+async function loadDashboard() {
+    try {
+        const response = await fetch("/api/dashboard/", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("token")
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load dashboard data.");
+        }
+
+        const data = await response.json();
+
+        businesses = data.businesses || [];
+        deals = data.deals || [];
+        userPreferences = data.preferences || [];
+        userBudgetRange = data.budget_range || "";
+
+        filteredBusinesses = [...businesses];
+
+        applySavedPreferencesToUI();
+        applyPreferenceFiltering();
+        populateFilters();
+        renderData();
+
+    } catch (error) {
+        console.error("Dashboard load error:", error);
+        document.getElementById("restaurants").innerHTML =
+            `<div class="card"><p>Failed to load restaurants.</p></div>`;
+        document.getElementById("deals").innerHTML =
+            `<div class="card deal"><p>Failed to load deals.</p></div>`;
+    }
+}
+
+/* =========================
+   POPULATE FILTERS
+========================= */
+function populateFilters() {
+    const categorySelect = document.getElementById("category");
+    const locationSelect = document.getElementById("location");
+
+    categorySelect.innerHTML = `<option value="All">All Categories</option>`;
+    locationSelect.innerHTML = `<option value="All">All Locations</option>`;
+
+    const categorySet = new Set();
+    const locationSet = new Set();
+
+    businesses.forEach((b) => {
+        if (b.category) categorySet.add(b.category);
+        if (b.address) locationSet.add(b.address);
+    });
+
+    categorySet.forEach((cat) => {
+        categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    });
+
+    locationSet.forEach((loc) => {
+        locationSelect.innerHTML += `<option value="${loc}">${loc}</option>`;
+    });
+}
+
+/* =========================
+   RENDER DATA
+========================= */
+function renderData() {
+    const restaurantDiv = document.getElementById("restaurants");
+    const dealsDiv = document.getElementById("deals");
+
+    restaurantDiv.innerHTML = "";
+    dealsDiv.innerHTML = "";
+
+    if (filteredBusinesses.length === 0) {
+        restaurantDiv.innerHTML = `
+            <div class="card">
+                <p>No restaurants found matching your criteria.</p>
+            </div>
+        `;
+    } else {
+        filteredBusinesses.forEach((b) => {
+            restaurantDiv.innerHTML += `
+                <div class="card">
+                    <h4>${b.name}</h4>
+                    <p>${b.category}</p>
+                    <p>${b.address}</p>
+                    <small>${b.price_range}</small>
+                </div>
+            `;
+        });
+    }
+
+    if (deals.length === 0) {
+        dealsDiv.innerHTML = `
+            <div class="card deal">
+                <p>No active deals available right now.</p>
+            </div>
+        `;
+    } else {
+        deals.forEach((d) => {
+            dealsDiv.innerHTML += `
+                <div class="card deal">
+                    <h4>${d.title}</h4>
+                    <p>${d.description}</p>
+                    <small>${d.restaurant_name}</small>
+                </div>
+            `;
+        });
+    }
+}
+
+/* =========================
+   FILTER DATA
+========================= */
+function filterData() {
+    const search = document.getElementById("search").value.toLowerCase();
+    const category = document.getElementById("category").value;
+    const location = document.getElementById("location").value;
+
+    filteredBusinesses = businesses.filter((b) =>
+        (b.name.toLowerCase().includes(search) ||
+         b.category.toLowerCase().includes(search)) &&
+        (category === "All" || b.category === category) &&
+        (location === "All" || b.address === location)
+    );
+
+    applyPreferenceFiltering();
+    renderData();
+}
+
+/* =========================
+   APPLY SAVED PREFERENCES TO UI
+========================= */
+function applySavedPreferencesToUI() {
+    document.querySelectorAll(".pref-btn").forEach((btn) => {
+        const value = btn.innerText.trim();
+        if (userPreferences.includes(value) || value === userBudgetRange) {
+            btn.classList.add("active");
+        }
+    });
+}
+
+/* =========================
+   APPLY PREFERENCE FILTERING
+========================= */
+function applyPreferenceFiltering() {
+    if (!userPreferences.length && !userBudgetRange) return;
+
+    filteredBusinesses = filteredBusinesses.filter((b) => {
+        const categoryMatch =
+            !userPreferences.length || userPreferences.some(pref =>
+                b.category.toLowerCase().includes(pref.toLowerCase())
+            );
+
+        const budgetMatch =
+            !userBudgetRange || b.price_range === userBudgetRange;
+
+        return categoryMatch || budgetMatch;
+    });
+}
+
+/* =========================
+   TOGGLE PREFERENCES PANEL
+========================= */
+const toggleBtn = document.getElementById("toggle-preferences");
+const panel = document.getElementById("preferences-panel");
+
+toggleBtn.addEventListener("click", () => {
+    if (panel.style.maxHeight) {
+        panel.style.maxHeight = null;
+    } else {
+        panel.style.maxHeight = panel.scrollHeight + "px";
+    }
+});
+
+/* =========================
+   SAVE PREFERENCES
+========================= */
+document.getElementById("save-preferences").addEventListener("click", async () => {
+    const selectedPreferences = [];
+
+    document.querySelectorAll(".pref-group .pref-btn.active").forEach((btn) => {
+        selectedPreferences.push(btn.innerText.trim());
+    });
+
+    let budgetRange = "";
+    const budgetButtons = document.querySelectorAll("#budget .pref-btn.active");
+    if (budgetButtons.length > 0) {
+        budgetRange = budgetButtons[0].innerText.trim();
+    }
+
+    try {
+        const response = await fetch("/api/save-preferences/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + localStorage.getItem("token")
+            },
+            body: JSON.stringify({
+                preferences: selectedPreferences,
+                budget_range: budgetRange
+            })
+        });
+
+        if (response.ok) {
+            userPreferences = selectedPreferences;
+            userBudgetRange = budgetRange;
+            filteredBusinesses = [...businesses];
+            filterData();
+            alert("Preferences saved successfully!");
+            panel.style.maxHeight = null;
+        } else {
+            alert("Failed to save preferences.");
+        }
+    } catch (error) {
+        alert("Server communication error.");
+    }
+});
+
+/* =========================
+   CANCEL PREFERENCES
+========================= */
+document.getElementById("cancel-preferences").addEventListener("click", () => {
+    panel.style.maxHeight = null;
+});
+
+/* =========================
+   PREFERENCE BUTTON ACTIVE STATE
+========================= */
+document.querySelectorAll(".pref-group").forEach((group) => {
+    group.addEventListener("click", (e) => {
+        if (!e.target.classList.contains("pref-btn")) return;
+
+        if (group.id === "budget") {
+            group.querySelectorAll(".pref-btn").forEach((btn) => btn.classList.remove("active"));
+            e.target.classList.add("active");
+        } else {
+            e.target.classList.toggle("active");
+        }
+    });
+});
+
+/* =========================
+   LOGOUT
+========================= */
+async function logout() {
+    try {
+        await fetch("/api/logout/", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("token")
+            }
+        });
+    } catch (error) {}
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("role");
+    window.location.href = "/login/";
+}
+
+/* =========================
+   INIT
+========================= */
+loadDashboard();
+</script>
+
+</body>
+</html>

@@ -6,99 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoodOTG | Register</title>
 
-    <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600&display=swap" rel="stylesheet">
-
-    <!-- External CSS -->
-    <link rel="stylesheet" href="{% static 'css/register_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/login_styles.css' %}">
 </head>
 <body>
 
 <div class="container">
-    
-    <!-- Success Layer -->
-    <div id="success-layer">
-        <div class="check-circle">✓</div>
-        <h2>Success</h2>
-        <p>Registration is Complete</p>
-    </div>
-    <h2>Create Account</h2>
-
-    <div id="msg" class="error"></div>
+    <h2>Join FoodOTG</h2>
+    <p class="subtext">Create an account based on your role</p>
 
     <div class="input-group">
-        <input type="text" id="name" placeholder="Full Name">
+        <button onclick="window.location.href='/customer-register/'">
+            Register as Customer
+        </button>
     </div>
 
     <div class="input-group">
-        <input type="email" id="email" placeholder="Email Address">
+        <button class="secondary-btn" onclick="window.location.href='/business-register/'">
+            Register as Business Owner
+        </button>
     </div>
-
-    <div class="input-group">
-        <input type="password" id="pass" placeholder="Password">
-    </div>
-
-    <div class="input-group">
-        <input type="password" id="confirm_pass" placeholder="Confirm Password">
-    </div>
-
-    <button onclick="executeRegistration()">Create Account</button>
 
     <div class="footer-text">
-        Already registered? <a href="/login/">Sign In</a>
+        Already have an account? <a href="/login/">Sign In</a>
     </div>
 </div>
-
-<script>
-async function executeRegistration() {
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
-    const pass = document.getElementById("pass").value;
-    const confirmPass = document.getElementById("confirm_pass").value;
-    const msg = document.getElementById("msg");
-
-    msg.innerText = "";
-
-    if (!name || !email || !pass || !confirmPass) {
-        msg.innerText = "All fields must be filled.";
-        return;
-    }
-    if (pass !== confirmPass) {
-        msg.innerText = "Passwords do not match.";
-        return;
-    }
-    if (pass.length < 6) {
-        msg.innerText = "Security requires 6+ characters.";
-        return;
-    }
-
-    const btn = document.querySelector("button");
-    btn.innerText = "REGISTERING...";
-    btn.disabled = true;
-
-    try {
-        const response = await fetch("/api/register/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password: pass })
-        });
-
-        if (response.status === 201) {
-            document.getElementById("success-layer").style.display = "flex";
-            setTimeout(() => { window.location.href = "/login/"; }, 2000);
-        } else {
-            const data = await response.json();
-            msg.innerText = data.error || "Registration failed.";
-            btn.innerText = "CREATE ACCOUNT";
-            btn.disabled = false;
-        }
-    } catch (e) {
-        msg.innerText = "Server communication error.";
-        btn.innerText = "CREATE ACCOUNT";
-        btn.disabled = false;
-    }
-}
-</script>
 
 </body>
 </html>

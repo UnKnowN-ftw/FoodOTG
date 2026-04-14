@@ -9,10 +9,8 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-
     height: 100vh;
     background: linear-gradient(135deg, #ff5a5f, #ff8a5c);
-
     display: flex;
     justify-content: center;
     align-items: center;
@@ -24,16 +22,11 @@ body {
 .container {
     width: 420px;
     max-width: 90%;
-
     background: #ffffff;
     padding: 40px 35px;
-
     border-radius: 18px;
-
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
-
     position: relative;
-
     animation: fadeIn 0.6s ease-in-out;
 }
 
@@ -43,7 +36,6 @@ body {
 h2 {
     text-align: center;
     margin-bottom: 25px;
-
     font-size: 24px;
     font-weight: 600;
     color: #333;
@@ -56,19 +48,19 @@ h2 {
     margin-bottom: 18px;
 }
 
-input {
+input,
+select {
     width: 100%;
     padding: 14px;
-
     border: 1px solid #ddd;
     border-radius: 10px;
-
     font-size: 14px;
-
     transition: all 0.25s ease;
+    background: #fff;
 }
 
-input:focus {
+input:focus,
+select:focus {
     border-color: #ff5a5f;
     outline: none;
     box-shadow: 0 0 6px rgba(255, 90, 95, 0.3);
@@ -84,16 +76,12 @@ input::placeholder {
 button {
     width: 100%;
     padding: 14px;
-
     background: #ff5a5f;
     color: #fff;
-
     border: none;
     border-radius: 10px;
-
     font-size: 16px;
     font-weight: 600;
-
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -113,7 +101,6 @@ button:active {
 .footer-text {
     text-align: center;
     margin-top: 18px;
-
     font-size: 13px;
     color: #777;
 }
@@ -136,6 +123,7 @@ button:active {
     font-size: 13px;
     margin-bottom: 10px;
     text-align: center;
+    min-height: 18px;
 }
 
 /* =========================
@@ -143,39 +131,29 @@ button:active {
 ========================= */
 #success-layer {
     display: none;
-
     position: absolute;
     top: 0;
     left: 0;
-
     width: 100%;
     height: 100%;
-
     background: #ffffff;
     border-radius: 18px;
-
-    display: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-
     z-index: 10;
 }
 
 .check-circle {
     width: 80px;
     height: 80px;
-
     border: 3px solid #ff5a5f;
     border-radius: 50%;
-
     display: flex;
     justify-content: center;
     align-items: center;
-
     font-size: 2rem;
     color: #ff5a5f;
-
     margin-bottom: 15px;
 }
 
@@ -205,7 +183,8 @@ button:active {
         font-size: 20px;
     }
 
-    input {
+    input,
+    select {
         padding: 12px;
     }
 
