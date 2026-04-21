@@ -1,15 +1,21 @@
 from decimal import Decimal
 
+<<<<<<< HEAD
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+=======
+from django.contrib.auth.models import User
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
 from django.utils.timezone import now
 
 
 class UserProfile(models.Model):
     ROLE_CHOICES = (
-        ('customer', 'Customer'),
-        ('business_owner', 'Business Owner'),
+        ("customer", "Customer"),
+        ("business_owner", "Business Owner"),
     )
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -20,7 +26,11 @@ class UserProfile(models.Model):
 
 
 class Restaurant(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='restaurants')
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="restaurants"
+    )
     name = models.CharField(max_length=255)
     description = models.TextField()
     address = models.CharField(max_length=255)
@@ -57,7 +67,11 @@ class Preference(models.Model):
 
 
 class MenuItem(models.Model):
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='menu_items')
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name="menu_items"
+    )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -69,7 +83,15 @@ class MenuItem(models.Model):
 
 
 class Cart(models.Model):
+<<<<<<< HEAD
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cart')
+=======
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="cart"
+    )
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     created_at = models.DateTimeField(default=now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -87,13 +109,30 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
+<<<<<<< HEAD
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE, related_name='cart_items')
+=======
+    cart = models.ForeignKey(
+        Cart,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+    menu_item = models.ForeignKey(
+        MenuItem,
+        on_delete=models.CASCADE,
+        related_name="cart_items"
+    )
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     quantity = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(default=now, editable=False)
 
     class Meta:
+<<<<<<< HEAD
         unique_together = ('cart', 'menu_item')
+=======
+        unique_together = ("cart", "menu_item")
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
 
     def __str__(self):
         return f"{self.menu_item.name} x {self.quantity}"
@@ -105,6 +144,7 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = (
+<<<<<<< HEAD
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
@@ -114,6 +154,25 @@ class Order(models.Model):
     customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='orders')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
+=======
+        ("pending", "Pending"),
+        ("confirmed", "Confirmed"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
+    )
+
+    customer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="orders"
+    )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name="orders"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="confirmed")
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(default=now, editable=False)
 
@@ -122,7 +181,15 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
+<<<<<<< HEAD
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+=======
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     menu_item = models.ForeignKey(MenuItem, on_delete=models.SET_NULL, null=True, blank=True)
     item_name = models.CharField(max_length=255)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -137,9 +204,27 @@ class OrderItem(models.Model):
 
 
 class Review(models.Model):
+<<<<<<< HEAD
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='reviews')
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='review')
+=======
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="review"
+    )
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     rating = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )

@@ -146,10 +146,13 @@ def business_dashboard_page(request):
     return render(request, "business_dashboard.html")
 
 
+<<<<<<< HEAD
 def checkout_page(request):
     return render(request, "checkout.html")
 
 
+=======
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
 def order_confirmation_page(request, order_id):
     return render(request, "order_confirmation.html", {"order_id": order_id})
 
@@ -447,6 +450,7 @@ def clear_cart(request):
 # =========================
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
+<<<<<<< HEAD
 def checkout_summary(request):
     cart = get_or_create_cart(request.user)
     cart_items = list(cart.items.select_related("menu_item__restaurant"))
@@ -476,6 +480,8 @@ def checkout_summary(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
+=======
+>>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
 def customer_orders(request):
     orders = Order.objects.filter(customer=request.user).order_by("-created_at")
     serializer = OrderSerializer(orders, many=True)
