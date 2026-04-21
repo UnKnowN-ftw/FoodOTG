@@ -8,6 +8,7 @@ pillow = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
 django = "*"
+selenium = "*"
 
 [dev-packages]
 
