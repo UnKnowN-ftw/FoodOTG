@@ -235,11 +235,7 @@ textarea:focus {
     margin-top: 18px;
 }
 
-<<<<<<< HEAD
 .pref-block+.pref-block {
-=======
-.pref-block + .pref-block {
->>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     margin-top: 18px;
 }
 
@@ -567,10 +563,7 @@ textarea:focus {
 }
 
 @media (max-width: 900px) {
-<<<<<<< HEAD
 
-=======
->>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     .search-row,
     .stats-grid {
         grid-template-columns: 1fr;
@@ -604,18 +597,6 @@ textarea:focus {
     .card-actions button,
     .pref-actions button {
         width: 100%;
-<<<<<<< HEAD
-=======
-    }
-
-    .modal {
-        padding: 12px;
-    }
-
-    .modal-box {
-        padding: 18px;
-        border-radius: 18px;
->>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
     }
 
     .modal {
