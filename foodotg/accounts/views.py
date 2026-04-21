@@ -54,7 +54,10 @@ def register(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
-        return Response({"message": "Registration is Complete"}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": "Registration is Complete"},
+            status=status.HTTP_201_CREATED
+        )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -83,12 +86,18 @@ def user_login(request):
             status=status.HTTP_200_OK,
         )
 
-    return Response({"error": "Invalid email or password"}, status=status.HTTP_401_UNAUTHORIZED)
+    return Response(
+        {"error": "Invalid email or password"},
+        status=status.HTTP_401_UNAUTHORIZED
+    )
 
 
 @api_view(["POST"])
 def user_logout(request):
-    return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+    return Response(
+        {"message": "Logout successful"},
+        status=status.HTTP_200_OK
+    )
 
 
 @api_view(["POST"])
@@ -197,14 +206,46 @@ def business_dashboard_data(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def business_reviews(request):
+    reviews = Review.objects.filter(
+        restaurant__owner=request.user,
+        is_approved=True
+    ).select_related("restaurant", "user", "order").order_by("-created_at")
+
+    data = []
+    for review in reviews:
+        data.append(
+            {
+                "id": review.id,
+                "restaurant_id": review.restaurant.id,
+                "restaurant_name": review.restaurant.name,
+                "customer_name": review.user.first_name or review.user.username,
+                "order_id": review.order.id,
+                "rating": review.rating,
+                "comment": review.comment,
+                "created_at": review.created_at,
+            }
+        )
+
+    return Response(data, status=status.HTTP_200_OK)
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def add_restaurant(request):
-    serializer = RestaurantSerializer(data=request.data, context={"request": request})
+    serializer = RestaurantSerializer(
+        data=request.data,
+        context={"request": request}
+    )
 
     if serializer.is_valid():
         serializer.save()
-        return Response({"message": "Restaurant added successfully"}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": "Restaurant added successfully"},
+            status=status.HTTP_201_CREATED
+        )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -242,7 +283,10 @@ def add_menu_item(request, restaurant_id):
     serializer = MenuItemSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save(restaurant=restaurant)
-        return Response({"message": "Menu item added successfully"}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": "Menu item added successfully"},
+            status=status.HTTP_201_CREATED
+        )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -261,7 +305,10 @@ def update_menu_item(request, item_id):
     serializer = MenuItemSerializer(item, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        return Response({"message": "Menu item updated successfully"}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Menu item updated successfully"},
+            status=status.HTTP_200_OK
+        )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -278,7 +325,10 @@ def delete_menu_item(request, item_id):
         )
 
     item.delete()
-    return Response({"message": "Menu item deleted successfully"}, status=status.HTTP_200_OK)
+    return Response(
+        {"message": "Menu item deleted successfully"},
+        status=status.HTTP_200_OK
+    )
 
 
 # =========================
@@ -290,7 +340,10 @@ def customer_restaurant_menu_items(request, restaurant_id):
     try:
         restaurant = Restaurant.objects.get(id=restaurant_id)
     except Restaurant.DoesNotExist:
-        return Response({"error": "Restaurant not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Restaurant not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     items = MenuItem.objects.filter(
         restaurant=restaurant,
@@ -328,18 +381,33 @@ def add_to_cart(request):
     try:
         quantity = int(raw_quantity)
     except (TypeError, ValueError):
-        return Response({"error": "Quantity must be a valid number."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Quantity must be a valid number."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     if not menu_item_id:
-        return Response({"error": "menu_item_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "menu_item_id is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     if quantity < 1:
-        return Response({"error": "Quantity must be at least 1."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Quantity must be at least 1."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     try:
-        menu_item = MenuItem.objects.select_related("restaurant").get(id=menu_item_id, available=True)
+        menu_item = MenuItem.objects.select_related("restaurant").get(
+            id=menu_item_id,
+            available=True
+        )
     except MenuItem.DoesNotExist:
-        return Response({"error": "Menu item not found or unavailable."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Menu item not found or unavailable."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     cart = get_or_create_cart(request.user)
 
@@ -380,17 +448,26 @@ def update_cart_item(request, item_id):
     try:
         cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
     except CartItem.DoesNotExist:
-        return Response({"error": "Cart item not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Cart item not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     raw_quantity = request.data.get("quantity", 1)
 
     try:
         quantity = int(raw_quantity)
     except (TypeError, ValueError):
-        return Response({"error": "Quantity must be a valid number."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Quantity must be a valid number."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     if quantity < 1:
-        return Response({"error": "Quantity must be at least 1."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Quantity must be at least 1."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     cart_item.quantity = quantity
     cart_item.save(update_fields=["quantity"])
@@ -411,7 +488,10 @@ def remove_cart_item(request, item_id):
     try:
         cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
     except CartItem.DoesNotExist:
-        return Response({"error": "Cart item not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Cart item not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     cart = cart_item.cart
     cart_item.delete()
@@ -452,7 +532,10 @@ def checkout_summary(request):
     cart_items = list(cart.items.select_related("menu_item__restaurant"))
 
     if not cart_items:
-        return Response({"error": "Your cart is empty."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Your cart is empty."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     restaurant_ids = {item.menu_item.restaurant_id for item in cart_items}
     if len(restaurant_ids) != 1:
@@ -489,7 +572,10 @@ def place_order(request):
     cart_items = list(cart.items.select_related("menu_item__restaurant"))
 
     if not cart_items:
-        return Response({"error": "Your cart is empty."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Your cart is empty."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     restaurant_ids = {item.menu_item.restaurant_id for item in cart_items}
     if len(restaurant_ids) != 1:
@@ -499,7 +585,10 @@ def place_order(request):
         )
 
     restaurant = cart_items[0].menu_item.restaurant
-    total_amount = sum((item.subtotal for item in cart_items), Decimal("0.00")).quantize(Decimal("0.01"))
+    total_amount = sum(
+        (item.subtotal for item in cart_items),
+        Decimal("0.00")
+    ).quantize(Decimal("0.01"))
 
     with transaction.atomic():
         order = Order.objects.create(
@@ -557,7 +646,10 @@ def order_confirmation_data(request, order_id):
     try:
         order = Order.objects.get(id=order_id, customer=request.user)
     except Order.DoesNotExist:
-        return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Order not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     serializer = OrderSerializer(order)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -572,7 +664,10 @@ def submit_review(request, order_id):
     try:
         order = Order.objects.get(id=order_id, customer=request.user)
     except Order.DoesNotExist:
-        return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Order not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if hasattr(order, "review"):
         return Response(
@@ -584,15 +679,24 @@ def submit_review(request, order_id):
     comment = request.data.get("comment", "").strip()
 
     if not rating:
-        return Response({"error": "Rating is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Rating is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     try:
         rating = int(rating)
     except (TypeError, ValueError):
-        return Response({"error": "Rating must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Rating must be a number."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     if rating < 1 or rating > 5:
-        return Response({"error": "Rating must be between 1 and 5."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Rating must be between 1 and 5."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     review = Review.objects.create(
         user=request.user,

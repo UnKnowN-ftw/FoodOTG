@@ -842,3 +842,53 @@ textarea:focus {
     gap: 10px;
     flex-wrap: wrap;
 }
+
+.review-display {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.review-display-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.review-display-header h4 {
+    font-size: 17px;
+}
+
+.review-display-stars {
+    display: flex;
+    gap: 4px;
+}
+
+.review-star-display {
+    font-size: 22px;
+    color: #d1d5db;
+}
+
+.review-star-display.filled {
+    color: #f59e0b;
+}
+
+.review-rating-label {
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.review-comment {
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 6px;
+}
+
+.review-date {
+    color: var(--muted);
+    font-size: 13px;
+}

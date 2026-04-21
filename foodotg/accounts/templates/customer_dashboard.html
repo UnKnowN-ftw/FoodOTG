@@ -138,7 +138,7 @@
         <section class="panel">
           <div class="section-header">
             <div>
-              <h2>🔥 Active Deals</h2>
+              <h2>Active Deals</h2>
               <p>Current offers from restaurants.</p>
             </div>
           </div>
@@ -148,7 +148,7 @@
         <section class="panel">
           <div class="section-header">
             <div>
-              <h2>🍽 Restaurants for You</h2>
+              <h2>Restaurants for You</h2>
               <p>Browse restaurants and open their menus.</p>
             </div>
           </div>
@@ -159,7 +159,7 @@
           <div class="section-header">
             <div>
               <h2>📦 My Orders</h2>
-              <p>View your order history and submit ratings and reviews.</p>
+              <p>View your order history and submitted reviews.</p>
             </div>
           </div>
           <div id="orders" class="orders-grid"></div>
@@ -277,6 +277,15 @@
         }
       }
 
+      function renderStars(rating) {
+        const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+        let stars = "";
+        for (let i = 1; i <= 5; i += 1) {
+          stars += `<span class="review-star-display ${i <= safeRating ? "filled" : ""}">★</span>`;
+        }
+        return stars;
+      }
+
       function updateSummaryCounts(cart = null) {
         document.getElementById("restaurantCount").innerText =
           businesses.length;
@@ -370,41 +379,55 @@
             !order.review_submitted &&
             ["confirmed", "completed"].includes(normalizedStatus);
 
-          const reviewBlock = order.review_submitted
+          const reviewBlock = order.review_submitted && order.review
             ? `
-              <div class="review-done-badge">Review Submitted</div>
-            `
-            : canReview
-              ? `
-                <div class="review-form">
-                  <h4>Rate and Review</h4>
-
-                  <div class="rating-stars" data-order-id="${order.id}">
-                    <span class="star" onclick="setRating(${order.id}, 1)">★</span>
-                    <span class="star" onclick="setRating(${order.id}, 2)">★</span>
-                    <span class="star" onclick="setRating(${order.id}, 3)">★</span>
-                    <span class="star" onclick="setRating(${order.id}, 4)">★</span>
-                    <span class="star" onclick="setRating(${order.id}, 5)">★</span>
+              <div class="review-display">
+                <div class="review-display-header">
+                  <h4>Your Review</h4>
+                  <div class="review-display-stars">
+                    ${renderStars(order.review.rating)}
                   </div>
-
-                  <input type="hidden" id="rating-${order.id}" value="0" />
-
-                  <textarea
-                    id="comment-${order.id}"
-                    class="review-textarea"
-                    placeholder="Write your review here..."
-                  ></textarea>
-
-                  <div class="review-actions">
-                    <button type="button" class="primary-btn" onclick="submitReview(${order.id})">
-                      Submit Review
-                    </button>
-                  </div>
-
-                  <div id="review-message-${order.id}" class="message"></div>
                 </div>
+                <p class="review-rating-label">Rating: ${order.review.rating}/5</p>
+                <p class="review-comment">${escapeHtml(order.review.comment || "No comment added.")}</p>
+                <p class="review-date">Submitted: ${formatDateTime(order.review.created_at)}</p>
+              </div>
+            `
+            : order.review_submitted
+              ? `
+                <div class="review-done-badge">Review Submitted</div>
               `
-              : "";
+              : canReview
+                ? `
+                  <div class="review-form">
+                    <h4>Rate and Review</h4>
+
+                    <div class="rating-stars" data-order-id="${order.id}">
+                      <span class="star" onclick="setRating(${order.id}, 1)">★</span>
+                      <span class="star" onclick="setRating(${order.id}, 2)">★</span>
+                      <span class="star" onclick="setRating(${order.id}, 3)">★</span>
+                      <span class="star" onclick="setRating(${order.id}, 4)">★</span>
+                      <span class="star" onclick="setRating(${order.id}, 5)">★</span>
+                    </div>
+
+                    <input type="hidden" id="rating-${order.id}" value="0" />
+
+                    <textarea
+                      id="comment-${order.id}"
+                      class="review-textarea"
+                      placeholder="Write your review here..."
+                    ></textarea>
+
+                    <div class="review-actions">
+                      <button type="button" class="primary-btn" onclick="submitReview(${order.id})">
+                        Submit Review
+                      </button>
+                    </div>
+
+                    <div id="review-message-${order.id}" class="message"></div>
+                  </div>
+                `
+                : "";
 
           ordersDiv.innerHTML += `
             <div class="order-card">

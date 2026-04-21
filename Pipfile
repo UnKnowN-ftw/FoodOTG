@@ -4,14 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pillow = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
 django = "*"
-<<<<<<< HEAD
-=======
-selenium = "*"
->>>>>>> 463576e0759496ea66d560cd32d0bad5622bc9b3
 
 [dev-packages]
 

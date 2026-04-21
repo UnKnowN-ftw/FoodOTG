@@ -10,6 +10,7 @@ urlpatterns = [
     path("api/save-preferences/", views.save_preferences),
 
     path("api/business-dashboard/", views.business_dashboard_data),
+    path("api/business-reviews/", views.business_reviews),
     path("api/add-restaurant/", views.add_restaurant),
 
     path("api/restaurants/<int:restaurant_id>/menu/", views.restaurant_menu_items),

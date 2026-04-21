@@ -148,28 +148,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
         return obj.subtotal
 
 
-class OrderSerializer(serializers.ModelSerializer):
-    restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
-    items = OrderItemSerializer(many=True, read_only=True)
-    review_submitted = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Order
-        fields = [
-            "id",
-            "restaurant",
-            "restaurant_name",
-            "status",
-            "total_amount",
-            "created_at",
-            "items",
-            "review_submitted",
-        ]
-
-    def get_review_submitted(self, obj):
-        return hasattr(obj, "review")
-
-
 class ReviewSerializer(serializers.ModelSerializer):
     restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
 
@@ -192,3 +170,36 @@ class ReviewSerializer(serializers.ModelSerializer):
             "is_approved",
             "created_at",
         ]
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
+    items = OrderItemSerializer(many=True, read_only=True)
+    review_submitted = serializers.SerializerMethodField()
+    review = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "restaurant",
+            "restaurant_name",
+            "status",
+            "total_amount",
+            "created_at",
+            "items",
+            "review_submitted",
+            "review",
+        ]
+
+    def get_review_submitted(self, obj):
+        return hasattr(obj, "review")
+
+    def get_review(self, obj):
+        if hasattr(obj, "review"):
+            return {
+                "rating": obj.review.rating,
+                "comment": obj.review.comment,
+                "created_at": obj.review.created_at,
+            }
+        return None

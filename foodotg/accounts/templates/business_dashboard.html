@@ -13,7 +13,7 @@
     <div class="header">
         <div>
             <h2>Business Dashboard</h2>
-            <p class="subtitle">Manage your restaurants and menu items</p>
+            <p class="subtitle">Manage your restaurants, menu items, and customer reviews</p>
         </div>
 
         <div class="header-actions">
@@ -42,6 +42,11 @@
     <div class="section">
         <h3>Your Restaurants</h3>
         <div id="restaurantList" class="grid"></div>
+    </div>
+
+    <div class="section reviews-section">
+        <h3>Customer Reviews</h3>
+        <div id="reviewList" class="reviews-grid"></div>
     </div>
 </div>
 
@@ -169,9 +174,49 @@
 
 <script>
 /* =========================
+   AUTH HELPERS
+========================= */
+function getAccessToken() {
+    return localStorage.getItem("token") || localStorage.getItem("access");
+}
+
+function authHeaders(extra = {}) {
+    return {
+        ...extra,
+        "Authorization": "Bearer " + getAccessToken()
+    };
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function formatDateTime(value) {
+    try {
+        return new Date(value).toLocaleString();
+    } catch (error) {
+        return value || "";
+    }
+}
+
+function renderStars(rating) {
+    const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+    let html = "";
+    for (let i = 1; i <= 5; i++) {
+        html += `<span class="review-star ${i <= safeRating ? "filled" : ""}">★</span>`;
+    }
+    return html;
+}
+
+/* =========================
    AUTH CHECK
 ========================= */
-if (!localStorage.getItem("token")) {
+if (!getAccessToken()) {
     window.location.href = "/business-login/";
 }
 
@@ -192,6 +237,8 @@ const menuModal = document.getElementById("menuModal");
 const menuForm = document.getElementById("menuForm");
 const menuMsg = document.getElementById("menuMsg");
 const menuItemsList = document.getElementById("menuItemsList");
+
+const reviewList = document.getElementById("reviewList");
 
 let currentRestaurantId = null;
 let editingMenuItemId = null;
@@ -215,9 +262,7 @@ function closeRestaurantModal() {
 async function loadRestaurants() {
     try {
         const response = await fetch("/api/business-dashboard/", {
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            }
+            headers: authHeaders()
         });
 
         if (!response.ok) {
@@ -231,6 +276,31 @@ async function loadRestaurants() {
         restaurantList.innerHTML = `
             <div class="empty-state">
                 <h4>Unable to load restaurants</h4>
+                <p>Please try again later.</p>
+            </div>
+        `;
+    }
+}
+
+/* =========================
+   LOAD REVIEWS
+========================= */
+async function loadReviews() {
+    try {
+        const response = await fetch("/api/business-reviews/", {
+            headers: authHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load reviews");
+        }
+
+        const reviews = await response.json();
+        renderReviews(reviews);
+    } catch (error) {
+        reviewList.innerHTML = `
+            <div class="empty-state">
+                <h4>Unable to load reviews</h4>
                 <p>Please try again later.</p>
             </div>
         `;
@@ -257,13 +327,13 @@ function renderRestaurants(restaurants) {
         const safeName = String(r.name).replace(/'/g, "\\'");
         restaurantList.innerHTML += `
             <div class="card">
-                <img src="${r.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800'}" alt="${r.name}">
+                <img src="${r.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800'}" alt="${escapeHtml(r.name)}">
                 <div class="card-body">
-                    <h4>${r.name}</h4>
-                    <p>${r.description || ""}</p>
-                    <p><strong>Address:</strong> ${r.address}</p>
-                    <p><strong>Category:</strong> ${r.category}</p>
-                    <p><strong>Price:</strong> ${r.price_range}</p>
+                    <h4>${escapeHtml(r.name)}</h4>
+                    <p>${escapeHtml(r.description || "")}</p>
+                    <p><strong>Address:</strong> ${escapeHtml(r.address)}</p>
+                    <p><strong>Category:</strong> ${escapeHtml(r.category)}</p>
+                    <p><strong>Price:</strong> ${escapeHtml(r.price_range)}</p>
                     <p><strong>Rating:</strong> ${parseFloat(r.average_rating || 0).toFixed(1)}</p>
                     <p><strong>Delivery:</strong> ${r.delivery_available ? "Yes" : "No"}</p>
 
@@ -271,6 +341,45 @@ function renderRestaurants(restaurants) {
                         <button type="button" onclick="openMenuModal(${r.id}, '${safeName}')">Manage Menu</button>
                     </div>
                 </div>
+            </div>
+        `;
+    });
+}
+
+/* =========================
+   RENDER REVIEWS
+========================= */
+function renderReviews(reviews) {
+    reviewList.innerHTML = "";
+
+    if (!reviews.length) {
+        reviewList.innerHTML = `
+            <div class="empty-state">
+                <h4>No Reviews Yet</h4>
+                <p>Customer reviews will appear here once orders are reviewed.</p>
+            </div>
+        `;
+        return;
+    }
+
+    reviews.forEach((review) => {
+        reviewList.innerHTML += `
+            <div class="review-card">
+                <div class="review-card-top">
+                    <div>
+                        <h4>${escapeHtml(review.restaurant_name)}</h4>
+                        <p class="review-meta"><strong>Customer:</strong> ${escapeHtml(review.customer_name)}</p>
+                        <p class="review-meta"><strong>Order:</strong> #${review.order_id}</p>
+                    </div>
+
+                    <div class="review-rating-wrap">
+                        <div class="review-stars">${renderStars(review.rating)}</div>
+                        <div class="review-score">${review.rating}/5</div>
+                    </div>
+                </div>
+
+                <p class="review-comment">${escapeHtml(review.comment || "No comment added.")}</p>
+                <p class="review-date">Submitted: ${formatDateTime(review.created_at)}</p>
             </div>
         `;
     });
@@ -316,10 +425,9 @@ restaurantForm.addEventListener("submit", async function (e) {
     try {
         const response = await fetch("/api/add-restaurant/", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            },
+            headers: authHeaders({
+                "Content-Type": "application/json"
+            }),
             body: JSON.stringify(payload)
         });
 
@@ -370,9 +478,7 @@ async function loadMenuItems() {
 
     try {
         const response = await fetch(`/api/restaurants/${currentRestaurantId}/menu/`, {
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            }
+            headers: authHeaders()
         });
 
         if (!response.ok) {
@@ -396,8 +502,8 @@ async function loadMenuItems() {
             menuItemsList.innerHTML += `
                 <div class="card">
                     <div class="card-body">
-                        <h4>${item.name}</h4>
-                        <p>${item.description || ""}</p>
+                        <h4>${escapeHtml(item.name)}</h4>
+                        <p>${escapeHtml(item.description || "")}</p>
                         <p><strong>Price:</strong> ৳${item.price}</p>
                         <p><strong>Status:</strong> ${item.available ? "Available" : "Unavailable"}</p>
                         <div class="card-actions">
@@ -438,9 +544,7 @@ async function removeMenuItem(itemId) {
     try {
         const response = await fetch(`/api/menu-items/${itemId}/delete/`, {
             method: "DELETE",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            }
+            headers: authHeaders()
         });
 
         if (response.ok) {
@@ -478,10 +582,9 @@ menuForm.addEventListener("submit", async function (e) {
 
         const response = await fetch(url, {
             method: method,
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            },
+            headers: authHeaders({
+                "Content-Type": "application/json"
+            }),
             body: JSON.stringify(payload)
         });
 
@@ -507,13 +610,12 @@ async function logout() {
     try {
         await fetch("/api/logout/", {
             method: "POST",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            }
+            headers: authHeaders()
         });
     } catch (error) {}
 
     localStorage.removeItem("token");
+    localStorage.removeItem("access");
     localStorage.removeItem("refresh");
     localStorage.removeItem("role");
     window.location.href = "/login/";
@@ -523,6 +625,7 @@ async function logout() {
    INIT
 ========================= */
 loadRestaurants();
+loadReviews();
 </script>
 
 </body>
