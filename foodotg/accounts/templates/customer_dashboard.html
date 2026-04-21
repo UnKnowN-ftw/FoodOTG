@@ -1,383 +1,829 @@
 {% load static %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FoodOTG | Customer Dashboard</title>
-    <link rel="stylesheet" href="{% static 'css/customer_dashboard_styles.css' %}">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="{% static 'css/customer_dashboard_styles.css' %}"
+    />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="dashboard-container">
+        <header class="header">
+          <div>
+            <h1>Customer Dashboard</h1>
+            <p class="subtitle">
+              Browse restaurants, view menus, manage your cart, and track orders.
+            </p>
+          </div>
 
-<div class="dashboard-container">
+          <div class="header-actions">
+            <button class="cart-btn" type="button" onclick="openCartModal()">
+              🛒 Cart (<span id="cartCount">0</span>)
+            </button>
+            <button class="logout-btn" type="button" onclick="logout()">
+              Logout
+            </button>
+          </div>
+        </header>
 
-    <div class="header">
-        <h1>Customer Dashboard</h1>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-    </div>
+        <section class="toolbar-card">
+          <div class="search-row">
+            <div class="field field-search">
+              <label for="search">Search</label>
+              <input
+                type="text"
+                id="search"
+                placeholder="Search restaurants or categories..."
+                onkeyup="filterData()"
+              />
+            </div>
 
-    <div class="search-container">
-        <input type="text" id="search" placeholder="Search restaurants..." onkeyup="filterData()">
-    </div>
+            <div class="field">
+              <label for="category">Category</label>
+              <select id="category" onchange="filterData()">
+                <option value="All">All Categories</option>
+              </select>
+            </div>
 
-    <div class="filters">
-        <select id="category" onchange="filterData()">
-            <option value="All">All Categories</option>
-        </select>
+            <div class="field">
+              <label for="location">Location</label>
+              <select id="location" onchange="filterData()">
+                <option value="All">All Locations</option>
+              </select>
+            </div>
+          </div>
+        </section>
 
-        <select id="location" onchange="filterData()">
-            <option value="All">All Locations</option>
-        </select>
-    </div>
+        <section class="stats-grid">
+          <div class="stat-card">
+            <h3 id="restaurantCount">0</h3>
+            <p>Restaurants</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="dealCount">0</h3>
+            <p>Active Deals</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="cartItemsCount">0</h3>
+            <p>Items in Cart</p>
+          </div>
+        </section>
 
-    <div class="section">
-        <h2>🔥 Active Deals</h2>
-        <div id="deals" class="grid"></div>
-    </div>
+        <section class="panel preferences-section">
+          <div class="section-header">
+            <div>
+              <h2>Your Preferences</h2>
+              <p>Refine restaurant suggestions based on your food style.</p>
+            </div>
+            <button
+              id="toggle-preferences"
+              class="preferences-btn"
+              type="button"
+            >
+              Edit Preferences
+            </button>
+          </div>
 
-    <div class="section">
-        <h2>🍽 Restaurants for You</h2>
-        <div id="restaurants" class="grid"></div>
-    </div>
-
-    <div class="section preferences-section">
-        <button id="toggle-preferences" class="preferences-btn" type="button">
-            ⭐ Set Taste Preferences
-        </button>
-
-        <div id="preferences-panel" class="preferences-panel">
-            <h3>🔥 Spice Level</h3>
-            <div class="pref-group" id="spice-level">
+          <div id="preferences-panel" class="preferences-panel">
+            <div class="pref-block">
+              <h3>Spice Level</h3>
+              <div class="pref-group" id="spice-level">
                 <button class="pref-btn" type="button">Mild</button>
                 <button class="pref-btn" type="button">Medium</button>
                 <button class="pref-btn" type="button">Spicy</button>
                 <button class="pref-btn" type="button">Extra Spicy</button>
+              </div>
             </div>
 
-            <h3>🌿 Food Type</h3>
-            <div class="pref-group" id="dietary">
+            <div class="pref-block">
+              <h3>Food Type</h3>
+              <div class="pref-group" id="dietary">
                 <button class="pref-btn" type="button">None</button>
                 <button class="pref-btn" type="button">Fast-Food</button>
                 <button class="pref-btn" type="button">Halal</button>
                 <button class="pref-btn" type="button">Dessert</button>
                 <button class="pref-btn" type="button">Seafood</button>
+              </div>
             </div>
 
-            <h3>💰 Budget Range</h3>
-            <div class="pref-group" id="budget">
+            <div class="pref-block">
+              <h3>Budget Range</h3>
+              <div class="pref-group" id="budget">
                 <button class="pref-btn" type="button">৳</button>
                 <button class="pref-btn" type="button">৳৳</button>
                 <button class="pref-btn" type="button">৳৳৳</button>
-            </div>
-
-            <p class="budget-info">
+              </div>
+              <p class="budget-info">
                 ৳ = Budget friendly • ৳৳ = Moderate • ৳৳৳ = Premium
-            </p>
+              </p>
+            </div>
 
             <div class="pref-actions">
-                <button id="save-preferences" class="save-btn" type="button">Save Preferences</button>
-                <button id="cancel-preferences" class="cancel-btn" type="button">Cancel</button>
+              <button id="save-preferences" class="save-btn" type="button">
+                Save Preferences
+              </button>
+              <button id="cancel-preferences" class="cancel-btn" type="button">
+                Cancel
+              </button>
             </div>
-        </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>🔥 Active Deals</h2>
+              <p>Current offers from restaurants.</p>
+            </div>
+          </div>
+          <div id="deals" class="content-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>🍽 Restaurants for You</h2>
+              <p>Browse restaurants and open their menus.</p>
+            </div>
+          </div>
+          <div id="restaurants" class="content-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>📦 My Orders</h2>
+              <p>View all the orders you have placed.</p>
+            </div>
+          </div>
+          <div id="orders" class="orders-grid"></div>
+        </section>
+      </div>
     </div>
 
-</div>
+    <div id="menuModal" class="modal">
+      <div class="modal-box modal-wide">
+        <div class="modal-header">
+          <h3 id="menuModalTitle">Restaurant Menu</h3>
+          <button class="close-btn" type="button" onclick="closeMenuModal()">
+            &times;
+          </button>
+        </div>
+        <div id="menuMessage" class="message"></div>
+        <div id="menuItemsList" class="content-grid"></div>
+      </div>
+    </div>
 
-<script>
-if (!localStorage.getItem("token")) {
-    window.location.href = "/customer-login/";
-}
+    <div id="cartModal" class="modal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>Your Cart</h3>
+          <button class="close-btn" type="button" onclick="closeCartModal()">
+            &times;
+          </button>
+        </div>
+        <div id="cartMessage" class="message"></div>
+        <div id="cartItemsList" class="cart-list"></div>
 
-if (localStorage.getItem("role") !== "customer") {
-    alert("Access denied. This page is for customers only.");
-    window.location.href = "/business-dashboard/";
-}
+        <div class="checkout-row">
+          <div>
+            <p class="checkout-label">Cart Total</p>
+            <h4>৳<span id="cartTotal">0.00</span></h4>
+          </div>
+          <div class="cart-footer-actions">
+            <button class="danger-btn" type="button" onclick="clearCart()">
+              Clear Cart
+            </button>
+            <button class="primary-btn" type="button" onclick="goToCheckout()">
+              Proceed to Checkout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-let businesses = [];
-let deals = [];
-let filteredBusinesses = [];
-let userPreferences = [];
-let userBudgetRange = "";
+    <script>
+      function getAccessToken() {
+        return localStorage.getItem("token") || localStorage.getItem("access");
+      }
 
-/* =========================
-   LOAD DASHBOARD FROM DATABASE
-========================= */
-async function loadDashboard() {
-    try {
-        const response = await fetch("/api/dashboard/", {
-            method: "GET",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            }
-        });
+      function requireCustomerAuth() {
+        const token = getAccessToken();
+        const role = localStorage.getItem("role");
 
-        if (!response.ok) {
-            throw new Error("Failed to load dashboard data.");
+        if (!token) {
+          window.location.href = "/customer-login/";
+          return false;
         }
 
-        const data = await response.json();
+        if (role !== "customer") {
+          alert("Access denied. This page is for customers only.");
+          window.location.href = "/business-dashboard/";
+          return false;
+        }
 
-        businesses = data.businesses || [];
-        deals = data.deals || [];
-        userPreferences = data.preferences || [];
-        userBudgetRange = data.budget_range || "";
+        return true;
+      }
 
-        filteredBusinesses = [...businesses];
+      if (!requireCustomerAuth()) {
+        throw new Error("Authentication required.");
+      }
 
-        applySavedPreferencesToUI();
-        applyPreferenceFiltering();
-        populateFilters();
-        renderData();
+      let businesses = [];
+      let deals = [];
+      let filteredBusinesses = [];
+      let userPreferences = [];
+      let userBudgetRange = [];
+      let orders = [];
 
-    } catch (error) {
-        console.error("Dashboard load error:", error);
-        document.getElementById("restaurants").innerHTML =
-            `<div class="card"><p>Failed to load restaurants.</p></div>`;
-        document.getElementById("deals").innerHTML =
-            `<div class="card deal"><p>Failed to load deals.</p></div>`;
-    }
-}
+      const menuModal = document.getElementById("menuModal");
+      const cartModal = document.getElementById("cartModal");
+      const panel = document.getElementById("preferences-panel");
+      const toggleBtn = document.getElementById("toggle-preferences");
 
-/* =========================
-   POPULATE FILTERS
-========================= */
-function populateFilters() {
-    const categorySelect = document.getElementById("category");
-    const locationSelect = document.getElementById("location");
+      function authHeaders(extra = {}) {
+        return {
+          ...extra,
+          Authorization: "Bearer " + getAccessToken(),
+        };
+      }
 
-    categorySelect.innerHTML = `<option value="All">All Categories</option>`;
-    locationSelect.innerHTML = `<option value="All">All Locations</option>`;
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
 
-    const categorySet = new Set();
-    const locationSet = new Set();
+      function escapeJsString(value) {
+        return String(value ?? "")
+          .replace(/\\/g, "\\\\")
+          .replace(/'/g, "\\'");
+      }
 
-    businesses.forEach((b) => {
-        if (b.category) categorySet.add(b.category);
-        if (b.address) locationSet.add(b.address);
-    });
+      function updateSummaryCounts(cart = null) {
+        document.getElementById("restaurantCount").innerText =
+          businesses.length;
+        document.getElementById("dealCount").innerText = deals.length;
+        const cartTotalItems = cart
+          ? cart.total_items || 0
+          : parseInt(document.getElementById("cartCount").innerText || "0", 10);
+        document.getElementById("cartItemsCount").innerText = cartTotalItems;
+      }
 
-    categorySet.forEach((cat) => {
-        categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
-    });
+      async function loadDashboard() {
+        try {
+          const response = await fetch("/api/dashboard/", {
+            method: "GET",
+            headers: authHeaders(),
+          });
 
-    locationSet.forEach((loc) => {
-        locationSelect.innerHTML += `<option value="${loc}">${loc}</option>`;
-    });
-}
+          if (!response.ok) {
+            throw new Error("Failed to load dashboard data.");
+          }
 
-/* =========================
-   RENDER DATA
-========================= */
-function renderData() {
-    const restaurantDiv = document.getElementById("restaurants");
-    const dealsDiv = document.getElementById("deals");
+          const data = await response.json();
 
-    restaurantDiv.innerHTML = "";
-    dealsDiv.innerHTML = "";
+          businesses = data.businesses || [];
+          deals = data.deals || [];
+          userPreferences = data.preferences || [];
+          userBudgetRange = data.budget_range || "";
+          filteredBusinesses = [...businesses];
 
-    if (filteredBusinesses.length === 0) {
-        restaurantDiv.innerHTML = `
-            <div class="card">
-                <p>No restaurants found matching your criteria.</p>
+          applySavedPreferencesToUI();
+          applyPreferenceFiltering();
+          populateFilters();
+          renderDeals();
+          renderRestaurants();
+          updateSummaryCounts();
+        } catch (error) {
+          document.getElementById("restaurants").innerHTML =
+            `<div class="empty-card"><p>Failed to load restaurants.</p></div>`;
+          document.getElementById("deals").innerHTML =
+            `<div class="empty-card"><p>Failed to load deals.</p></div>`;
+        }
+      }
+
+      async function loadOrders() {
+        const ordersDiv = document.getElementById("orders");
+
+        try {
+          const response = await fetch("/api/orders/", {
+            method: "GET",
+            headers: authHeaders(),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to load orders.");
+          }
+
+          orders = await response.json();
+          renderOrders();
+        } catch (error) {
+          ordersDiv.innerHTML =
+            `<div class="empty-card"><p>Failed to load orders.</p></div>`;
+        }
+      }
+
+      function renderOrders() {
+        const ordersDiv = document.getElementById("orders");
+        ordersDiv.innerHTML = "";
+
+        if (!orders.length) {
+          ordersDiv.innerHTML = `
+            <div class="empty-card">
+              <p>You have not placed any orders yet.</p>
             </div>
-        `;
-    } else {
-        filteredBusinesses.forEach((b) => {
-            restaurantDiv.innerHTML += `
-                <div class="card">
-                    <h4>${b.name}</h4>
-                    <p>${b.category}</p>
-                    <p>${b.address}</p>
-                    <small>${b.price_range}</small>
-                </div>
-            `;
+          `;
+          return;
+        }
+
+        orders.forEach((order) => {
+          const itemsHtml = (order.items || []).map(item => `
+            <li>${escapeHtml(item.item_name)} × ${item.quantity} — ৳${item.subtotal}</li>
+          `).join("");
+
+          ordersDiv.innerHTML += `
+            <div class="order-card">
+              <div class="order-top">
+                <h3>Order #${order.id}</h3>
+                <span class="order-status">${escapeHtml(order.status)}</span>
+              </div>
+
+              <p><strong>Restaurant:</strong> ${escapeHtml(order.restaurant_name)}</p>
+              <p><strong>Total:</strong> ৳${order.total_amount}</p>
+              <p><strong>Placed:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+
+              <div class="order-items">
+                <h4>Items</h4>
+                <ul>
+                  ${itemsHtml || "<li>No items found.</li>"}
+                </ul>
+              </div>
+
+              <div class="order-actions">
+                <a class="primary-btn order-link" href="/order-confirmation/${order.id}/">View Confirmation</a>
+              </div>
+            </div>
+          `;
         });
-    }
+      }
 
-    if (deals.length === 0) {
-        dealsDiv.innerHTML = `
-            <div class="card deal">
-                <p>No active deals available right now.</p>
-            </div>
-        `;
-    } else {
+      function populateFilters() {
+        const categorySelect = document.getElementById("category");
+        const locationSelect = document.getElementById("location");
+
+        categorySelect.innerHTML = `<option value="All">All Categories</option>`;
+        locationSelect.innerHTML = `<option value="All">All Locations</option>`;
+
+        const categorySet = new Set();
+        const locationSet = new Set();
+
+        businesses.forEach((b) => {
+          if (b.category) categorySet.add(b.category);
+          if (b.address) locationSet.add(b.address);
+        });
+
+        [...categorySet].sort().forEach((cat) => {
+          categorySelect.innerHTML += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+        });
+
+        [...locationSet].sort().forEach((loc) => {
+          locationSelect.innerHTML += `<option value="${escapeHtml(loc)}">${escapeHtml(loc)}</option>`;
+        });
+      }
+
+      function renderDeals() {
+        const dealsDiv = document.getElementById("deals");
+        dealsDiv.innerHTML = "";
+
+        if (!deals.length) {
+          dealsDiv.innerHTML = `<div class="empty-card"><p>No active deals available right now.</p></div>`;
+          return;
+        }
+
         deals.forEach((d) => {
-            dealsDiv.innerHTML += `
-                <div class="card deal">
-                    <h4>${d.title}</h4>
-                    <p>${d.description}</p>
-                    <small>${d.restaurant_name}</small>
-                </div>
-            `;
+          dealsDiv.innerHTML += `
+            <div class="deal-card">
+              <div class="deal-badge">Deal</div>
+              <h4>${escapeHtml(d.title)}</h4>
+              <p>${escapeHtml(d.description)}</p>
+              <small>${escapeHtml(d.restaurant_name)}</small>
+            </div>
+          `;
         });
-    }
-}
+      }
 
-/* =========================
-   FILTER DATA
-========================= */
-async function filterData() {
-    const search = document.getElementById("search").value;
-    const category = document.getElementById("category").value;
-    const location = document.getElementById("location").value;
+      function renderRestaurants() {
+        const restaurantDiv = document.getElementById("restaurants");
+        restaurantDiv.innerHTML = "";
 
-    try {
-        const response = await fetch(
-            `/api/search-restaurants/?q=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&location=${encodeURIComponent(location)}`,
-            {
-                headers: {
-                    "Authorization": "Bearer " + localStorage.getItem("token")
-                }
-            }
+        if (!filteredBusinesses.length) {
+          restaurantDiv.innerHTML = `
+            <div class="empty-card">
+              <p>No restaurants found matching your criteria.</p>
+            </div>
+          `;
+          return;
+        }
+
+        filteredBusinesses.forEach((b) => {
+          const safeName = escapeJsString(b.name || "");
+          const imageUrl =
+            b.image ||
+            "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800";
+
+          restaurantDiv.innerHTML += `
+            <div class="restaurant-card">
+              <img class="restaurant-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(b.name)}">
+              <div class="restaurant-body">
+                <div class="restaurant-top">
+                  <h4>${escapeHtml(b.name)}</h4>
+                  <span class="price-pill">${escapeHtml(b.price_range || "")}</span>
+                </div>
+
+                <p class="muted-line">${escapeHtml(b.category || "")}</p>
+                <p class="muted-line">${escapeHtml(b.address || "")}</p>
+
+                <div class="restaurant-meta">
+                  <span>⭐ ${parseFloat(b.average_rating || 0).toFixed(1)}</span>
+                  <span>${b.delivery_available ? "Delivery Available" : "No Delivery"}</span>
+                </div>
+
+                <div class="card-actions">
+                  <button type="button" class="primary-btn" onclick="openMenuModal(${b.id}, '${safeName}')">View Menu</button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      function filterData() {
+        const search = document.getElementById("search").value.toLowerCase();
+        const category = document.getElementById("category").value;
+        const location = document.getElementById("location").value;
+
+        filteredBusinesses = businesses.filter(
+          (b) =>
+            (String(b.name || "").toLowerCase().includes(search) ||
+              String(b.category || "").toLowerCase().includes(search)) &&
+            (category === "All" || b.category === category) &&
+            (location === "All" || b.address === location),
         );
 
-        if (!response.ok) {
-            throw new Error("Search failed");
-        }
+        applyPreferenceFiltering();
+        renderRestaurants();
+      }
 
-        filteredBusinesses = await response.json();
-        renderData();
-    } catch (error) {
-        console.error("Search error:", error);
-    }
-}
-
-/* =========================
-   APPLY SAVED PREFERENCES TO UI
-========================= */
-function applySavedPreferencesToUI() {
-    document.querySelectorAll(".pref-btn").forEach((btn) => {
-        const value = btn.innerText.trim();
-        if (userPreferences.includes(value) || value === userBudgetRange) {
+      function applySavedPreferencesToUI() {
+        document.querySelectorAll(".pref-btn").forEach((btn) => {
+          btn.classList.remove("active");
+          const value = btn.innerText.trim();
+          if (userPreferences.includes(value) || value === userBudgetRange) {
             btn.classList.add("active");
-        }
-    });
-}
+          }
+        });
+      }
 
-/* =========================
-   APPLY PREFERENCE FILTERING
-========================= */
-function applyPreferenceFiltering() {
-    if (!userPreferences.length && !userBudgetRange) return;
+      function applyPreferenceFiltering() {
+        if (!userPreferences.length && !userBudgetRange) return;
 
-    filteredBusinesses = filteredBusinesses.filter((b) => {
-        const categoryMatch =
-            !userPreferences.length || userPreferences.some(pref =>
-                b.category.toLowerCase().includes(pref.toLowerCase())
+        filteredBusinesses = filteredBusinesses.filter((b) => {
+          const categoryMatch =
+            !userPreferences.length ||
+            userPreferences.some((pref) =>
+              String(b.category || "")
+                .toLowerCase()
+                .includes(pref.toLowerCase()),
             );
 
-        const budgetMatch =
+          const budgetMatch =
             !userBudgetRange || b.price_range === userBudgetRange;
 
-        return categoryMatch || budgetMatch;
-    });
-}
+          return categoryMatch || budgetMatch;
+        });
+      }
 
-/* =========================
-   TOGGLE PREFERENCES PANEL
-========================= */
-const toggleBtn = document.getElementById("toggle-preferences");
-const panel = document.getElementById("preferences-panel");
+      toggleBtn.addEventListener("click", () => {
+        panel.classList.toggle("open");
+      });
 
-toggleBtn.addEventListener("click", () => {
-    if (panel.style.maxHeight) {
-        panel.style.maxHeight = null;
-    } else {
-        panel.style.maxHeight = panel.scrollHeight + "px";
-    }
-});
+      document
+        .getElementById("save-preferences")
+        .addEventListener("click", async () => {
+          const selectedPreferences = [];
 
-/* =========================
-   SAVE PREFERENCES
-========================= */
-document.getElementById("save-preferences").addEventListener("click", async () => {
-    const selectedPreferences = [];
+          document
+            .querySelectorAll(".pref-group .pref-btn.active")
+            .forEach((btn) => {
+              selectedPreferences.push(btn.innerText.trim());
+            });
 
-    document.querySelectorAll(".pref-group .pref-btn.active").forEach((btn) => {
-        selectedPreferences.push(btn.innerText.trim());
-    });
+          let budgetRange = "";
+          const budgetButtons = document.querySelectorAll(
+            "#budget .pref-btn.active",
+          );
+          if (budgetButtons.length > 0) {
+            budgetRange = budgetButtons[0].innerText.trim();
+          }
 
-    let budgetRange = "";
-    const budgetButtons = document.querySelectorAll("#budget .pref-btn.active");
-    if (budgetButtons.length > 0) {
-        budgetRange = budgetButtons[0].innerText.trim();
-    }
-
-    try {
-        const response = await fetch("/api/save-preferences/", {
-            method: "POST",
-            headers: {
+          try {
+            const response = await fetch("/api/save-preferences/", {
+              method: "POST",
+              headers: authHeaders({
                 "Content-Type": "application/json",
-                "Authorization": "Bearer " + localStorage.getItem("token")
-            },
-            body: JSON.stringify({
+              }),
+              body: JSON.stringify({
                 preferences: selectedPreferences,
-                budget_range: budgetRange
-            })
-        });
+                budget_range: budgetRange,
+              }),
+            });
 
-        if (response.ok) {
-            userPreferences = selectedPreferences;
-            userBudgetRange = budgetRange;
-            filteredBusinesses = [...businesses];
-            filterData();
-            alert("Preferences saved successfully!");
-            panel.style.maxHeight = null;
-        } else {
-            alert("Failed to save preferences.");
-        }
-    } catch (error) {
-        alert("Server communication error.");
-    }
-});
-
-/* =========================
-   CANCEL PREFERENCES
-========================= */
-document.getElementById("cancel-preferences").addEventListener("click", () => {
-    panel.style.maxHeight = null;
-});
-
-/* =========================
-   PREFERENCE BUTTON ACTIVE STATE
-========================= */
-document.querySelectorAll(".pref-group").forEach((group) => {
-    group.addEventListener("click", (e) => {
-        if (!e.target.classList.contains("pref-btn")) return;
-
-        if (group.id === "budget") {
-            group.querySelectorAll(".pref-btn").forEach((btn) => btn.classList.remove("active"));
-            e.target.classList.add("active");
-        } else {
-            e.target.classList.toggle("active");
-        }
-    });
-});
-
-/* =========================
-   LOGOUT
-========================= */
-async function logout() {
-    try {
-        await fetch("/api/logout/", {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + localStorage.getItem("token")
+            if (response.ok) {
+              userPreferences = selectedPreferences;
+              userBudgetRange = budgetRange;
+              filteredBusinesses = [...businesses];
+              filterData();
+              panel.classList.remove("open");
+              alert("Preferences saved successfully!");
+            } else {
+              alert("Failed to save preferences.");
             }
+          } catch (error) {
+            alert("Server communication error.");
+          }
         });
-    } catch (error) {}
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("refresh");
-    localStorage.removeItem("role");
-    window.location.href = "/login/";
-}
+      document
+        .getElementById("cancel-preferences")
+        .addEventListener("click", () => {
+          panel.classList.remove("open");
+        });
 
-/* =========================
-   INIT
-========================= */
-loadDashboard();
-</script>
+      document.querySelectorAll(".pref-group").forEach((group) => {
+        group.addEventListener("click", (e) => {
+          if (!e.target.classList.contains("pref-btn")) return;
 
-</body>
+          if (group.id === "budget") {
+            group
+              .querySelectorAll(".pref-btn")
+              .forEach((btn) => btn.classList.remove("active"));
+            e.target.classList.add("active");
+          } else {
+            e.target.classList.toggle("active");
+          }
+        });
+      });
+
+      async function openMenuModal(restaurantId, restaurantName) {
+        menuModal.classList.add("show");
+        document.getElementById("menuModalTitle").innerText =
+          `Menu - ${restaurantName}`;
+        document.getElementById("menuMessage").innerHTML = "";
+        const list = document.getElementById("menuItemsList");
+        list.innerHTML = `<div class="empty-card"><p>Loading menu...</p></div>`;
+
+        try {
+          const response = await fetch(
+            `/api/customer/restaurants/${restaurantId}/menu/`,
+            {
+              headers: authHeaders(),
+            },
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            list.innerHTML = `<div class="empty-card"><p>${escapeHtml(data.error || "Failed to load menu.")}</p></div>`;
+            return;
+          }
+
+          const items = data.items || [];
+
+          if (!items.length) {
+            list.innerHTML = `<div class="empty-card"><p>No available menu items.</p></div>`;
+            return;
+          }
+
+          list.innerHTML = "";
+          items.forEach((item) => {
+            list.innerHTML += `
+              <div class="menu-card">
+                <h4>${escapeHtml(item.name)}</h4>
+                <p>${escapeHtml(item.description || "No description available.")}</p>
+                <div class="menu-card-footer">
+                  <span>৳${item.price}</span>
+                  <button type="button" class="primary-btn" onclick="addToCart(${item.id})">Add to Cart</button>
+                </div>
+              </div>
+            `;
+          });
+        } catch (error) {
+          list.innerHTML = `<div class="empty-card"><p>Failed to load menu.</p></div>`;
+        }
+      }
+
+      function closeMenuModal() {
+        menuModal.classList.remove("show");
+      }
+
+      async function loadCart() {
+        try {
+          const response = await fetch("/api/cart/", {
+            headers: authHeaders(),
+          });
+
+          if (!response.ok) throw new Error("Failed to load cart.");
+
+          const cart = await response.json();
+          renderCart(cart);
+        } catch (error) {
+          document.getElementById("cartItemsList").innerHTML =
+            `<div class="empty-card"><p>Failed to load cart.</p></div>`;
+        }
+      }
+
+      async function addToCart(menuItemId) {
+        try {
+          const response = await fetch("/api/cart/add/", {
+            method: "POST",
+            headers: authHeaders({
+              "Content-Type": "application/json",
+            }),
+            body: JSON.stringify({
+              menu_item_id: menuItemId,
+              quantity: 1,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            renderCart(data.cart);
+            document.getElementById("menuMessage").innerHTML =
+              `<span class="success-text">Item added to cart.</span>`;
+          } else {
+            document.getElementById("menuMessage").innerHTML =
+              `<span class="error-text">${escapeHtml(data.error || "Failed to add item.")}</span>`;
+          }
+        } catch (error) {
+          document.getElementById("menuMessage").innerHTML =
+            `<span class="error-text">Server communication error.</span>`;
+        }
+      }
+
+      function renderCart(cart) {
+        const list = document.getElementById("cartItemsList");
+        const totalItems = cart.total_items || 0;
+        const totalPrice = cart.total_price || "0.00";
+
+        document.getElementById("cartCount").innerText = totalItems;
+        document.getElementById("cartItemsCount").innerText = totalItems;
+        document.getElementById("cartTotal").innerText = totalPrice;
+        updateSummaryCounts(cart);
+
+        if (!cart.items || !cart.items.length) {
+          list.innerHTML = `<div class="empty-card"><p>Your cart is empty.</p></div>`;
+          return;
+        }
+
+        list.innerHTML = "";
+        cart.items.forEach((item) => {
+          list.innerHTML += `
+            <div class="cart-item">
+              <div class="cart-item-info">
+                <h4>${escapeHtml(item.menu_item_name)}</h4>
+                <p>${escapeHtml(item.restaurant_name)}</p>
+                <small>৳${item.price} x ${item.quantity} = ৳${item.subtotal}</small>
+              </div>
+
+              <div class="qty-actions">
+                <button type="button" class="qty-btn" onclick="changeCartQty(${item.id}, ${item.quantity - 1})">-</button>
+                <span class="qty-value">${item.quantity}</span>
+                <button type="button" class="qty-btn" onclick="changeCartQty(${item.id}, ${item.quantity + 1})">+</button>
+                <button type="button" class="remove-btn" onclick="removeCartItem(${item.id})">Remove</button>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      async function changeCartQty(itemId, quantity) {
+        if (quantity < 1) {
+          await removeCartItem(itemId);
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/cart/items/${itemId}/update/`, {
+            method: "PUT",
+            headers: authHeaders({
+              "Content-Type": "application/json",
+            }),
+            body: JSON.stringify({ quantity }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            renderCart(data.cart);
+          } else {
+            document.getElementById("cartMessage").innerHTML =
+              `<span class="error-text">${escapeHtml(data.error || "Failed to update cart.")}</span>`;
+          }
+        } catch (error) {
+          document.getElementById("cartMessage").innerHTML =
+            `<span class="error-text">Server communication error.</span>`;
+        }
+      }
+
+      async function removeCartItem(itemId) {
+        try {
+          const response = await fetch(`/api/cart/items/${itemId}/delete/`, {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            renderCart(data.cart);
+          } else {
+            document.getElementById("cartMessage").innerHTML =
+              `<span class="error-text">${escapeHtml(data.error || "Failed to remove item.")}</span>`;
+          }
+        } catch (error) {
+          document.getElementById("cartMessage").innerHTML =
+            `<span class="error-text">Server communication error.</span>`;
+        }
+      }
+
+      async function clearCart() {
+        try {
+          const response = await fetch("/api/cart/clear/", {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            renderCart(data.cart);
+          } else {
+            document.getElementById("cartMessage").innerHTML =
+              `<span class="error-text">${escapeHtml(data.error || "Failed to clear cart.")}</span>`;
+          }
+        } catch (error) {
+          document.getElementById("cartMessage").innerHTML =
+            `<span class="error-text">Server communication error.</span>`;
+        }
+      }
+
+      function openCartModal() {
+        cartModal.classList.add("show");
+        document.getElementById("cartMessage").innerHTML = "";
+        loadCart();
+      }
+
+      function closeCartModal() {
+        cartModal.classList.remove("show");
+      }
+
+      window.addEventListener("click", (e) => {
+        if (e.target === menuModal) closeMenuModal();
+        if (e.target === cartModal) closeCartModal();
+      });
+
+      async function logout() {
+        try {
+          await fetch("/api/logout/", {
+            method: "POST",
+            headers: authHeaders(),
+          });
+        } catch (error) {}
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        localStorage.removeItem("role");
+        window.location.href = "/login/";
+      }
+
+      function goToCheckout() {
+        window.location.href = "/checkout/";
+      }
+
+      loadDashboard();
+      loadCart();
+      loadOrders();
+    </script>
+  </body>
 </html>

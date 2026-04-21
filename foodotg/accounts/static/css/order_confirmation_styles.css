@@ -1,0 +1,149 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    color: #1f2937;
+    min-height: 100vh;
+}
+
+.confirmation-page {
+    padding: 30px 15px;
+}
+
+.confirmation-card {
+    max-width: 780px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.10);
+}
+
+.confirmation-header h1 {
+    color: #166534;
+    margin-bottom: 8px;
+    font-size: 32px;
+}
+
+.confirmation-header p {
+    color: #6b7280;
+    margin-bottom: 24px;
+}
+
+.loading-text,
+.muted-text {
+    color: #6b7280;
+}
+
+.error-text {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.order-summary {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding: 18px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.summary-row span {
+    color: #6b7280;
+}
+
+.items-section h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+    color: #111827;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.order-item:last-child {
+    border-bottom: none;
+}
+
+.item-info h3 {
+    font-size: 18px;
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.item-info p {
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.item-subtotal {
+    font-weight: 700;
+    color: #166534;
+    white-space: nowrap;
+}
+
+.order-total {
+    margin-top: 24px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #166534;
+}
+
+.confirmation-actions {
+    margin-top: 28px;
+}
+
+.back-btn {
+    display: inline-block;
+    text-decoration: none;
+    background: #16a34a;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.back-btn:hover {
+    background: #15803d;
+}
+
+@media (max-width: 640px) {
+    .confirmation-card {
+        padding: 20px;
+    }
+
+    .confirmation-header h1 {
+        font-size: 26px;
+    }
+
+    .order-item,
+    .summary-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .order-total {
+        font-size: 20px;
+    }
+}

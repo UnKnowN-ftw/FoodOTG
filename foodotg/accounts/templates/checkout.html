@@ -1,0 +1,171 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOTG | Checkout</title>
+    <link rel="stylesheet" href="{% static 'css/checkout_styles.css' %}">
+</head>
+<body>
+
+<div class="checkout-page">
+    <div class="checkout-card">
+        <div class="checkout-header">
+            <div>
+                <h1>Checkout</h1>
+                <p>Review your order before placing it.</p>
+            </div>
+
+            <button class="secondary-btn" type="button" onclick="window.location.href='/customer-dashboard/'">
+                Back
+            </button>
+        </div>
+
+        <div id="message" class="message-box"></div>
+        <div id="checkoutContent">
+            <p class="loading-text">Loading checkout summary...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function getAccessToken() {
+    return localStorage.getItem("token") || localStorage.getItem("access");
+}
+
+if (!getAccessToken()) {
+    window.location.href = "/customer-login/";
+}
+
+const token = getAccessToken();
+
+function escapeHtml(text) {
+    return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+async function loadCheckoutSummary() {
+    const content = document.getElementById("checkoutContent");
+
+    try {
+        const response = await fetch("/api/checkout/summary/", {
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Accept": "application/json"
+            }
+        });
+
+        const rawText = await response.text();
+
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (e) {
+            content.innerHTML = `<div class="empty-box">Invalid server response.</div>`;
+            console.error("Non-JSON response:", rawText);
+            return;
+        }
+
+        if (!response.ok) {
+            content.innerHTML = `<div class="empty-box">${escapeHtml(data.error || "Failed to load checkout summary.")}</div>`;
+            return;
+        }
+
+        const cart = data.cart;
+        const items = cart.items || [];
+
+        if (!items.length) {
+            content.innerHTML = `<div class="empty-box">Your cart is empty.</div>`;
+            return;
+        }
+
+        const itemsHtml = items.map(item => `
+            <div class="checkout-item">
+                <div class="checkout-item-info">
+                    <h3>${escapeHtml(item.menu_item_name)}</h3>
+                    <p>${escapeHtml(item.restaurant_name)}</p>
+                    <small>৳${item.price} x ${item.quantity}</small>
+                </div>
+                <div class="checkout-item-total">৳${item.subtotal}</div>
+            </div>
+        `).join("");
+
+        content.innerHTML = `
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <h3>Restaurant</h3>
+                    <p>${escapeHtml(data.restaurant_name)}</p>
+                </div>
+
+                <div class="summary-box">
+                    <h3>Cart Summary</h3>
+                    <p>Total Items: ${cart.total_items}</p>
+                    <p>Total Price: ৳${cart.total_price}</p>
+                </div>
+            </div>
+
+            <div class="items-wrapper">
+                ${itemsHtml}
+            </div>
+
+            <div class="checkout-footer">
+                <div>
+                    <p class="total-label">Grand Total</p>
+                    <div class="grand-total">৳${cart.total_price}</div>
+                </div>
+
+                <div class="action-group">
+                    <button class="secondary-btn" type="button" onclick="window.location.href='/customer-dashboard/'">Back</button>
+                    <button class="primary-btn" type="button" onclick="placeOrder()">Place Order</button>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        content.innerHTML = `<div class="empty-box">Server communication error.</div>`;
+    }
+}
+
+async function placeOrder() {
+    const message = document.getElementById("message");
+
+    try {
+        const response = await fetch("/api/orders/place/", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Accept": "application/json"
+            }
+        });
+
+        const rawText = await response.text();
+
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (e) {
+            message.innerHTML = `<p class="error-text">Invalid server response.</p>`;
+            console.error("Non-JSON response:", rawText);
+            return;
+        }
+
+        if (response.ok) {
+            message.innerHTML = `<p class="success-text">Order placed successfully.</p>`;
+            window.location.href = data.redirect_url;
+        } else {
+            message.innerHTML = `<p class="error-text">${escapeHtml(data.error || "Failed to place order.")}</p>`;
+        }
+    } catch (error) {
+        message.innerHTML = `<p class="error-text">Server communication error.</p>`;
+    }
+}
+
+loadCheckoutSummary();
+</script>
+
+</body>
+</html>
