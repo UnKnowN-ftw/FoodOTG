@@ -17,7 +17,8 @@
           <div>
             <h1>Customer Dashboard</h1>
             <p class="subtitle">
-              Browse restaurants, view menus, manage your cart, and track orders.
+              Browse restaurants, view menus, manage your cart, track orders,
+              and submit reviews.
             </p>
           </div>
 
@@ -158,7 +159,7 @@
           <div class="section-header">
             <div>
               <h2>📦 My Orders</h2>
-              <p>View all the orders you have placed.</p>
+              <p>View your order history and submit ratings and reviews.</p>
             </div>
           </div>
           <div id="orders" class="orders-grid"></div>
@@ -238,7 +239,7 @@
       let deals = [];
       let filteredBusinesses = [];
       let userPreferences = [];
-      let userBudgetRange = [];
+      let userBudgetRange = "";
       let orders = [];
 
       const menuModal = document.getElementById("menuModal");
@@ -268,13 +269,23 @@
           .replace(/'/g, "\\'");
       }
 
+      function formatDateTime(value) {
+        try {
+          return new Date(value).toLocaleString();
+        } catch (error) {
+          return value || "";
+        }
+      }
+
       function updateSummaryCounts(cart = null) {
         document.getElementById("restaurantCount").innerText =
           businesses.length;
         document.getElementById("dealCount").innerText = deals.length;
+
         const cartTotalItems = cart
           ? cart.total_items || 0
           : parseInt(document.getElementById("cartCount").innerText || "0", 10);
+
         document.getElementById("cartItemsCount").innerText = cartTotalItems;
       }
 
@@ -346,9 +357,54 @@
         }
 
         orders.forEach((order) => {
-          const itemsHtml = (order.items || []).map(item => `
-            <li>${escapeHtml(item.item_name)} × ${item.quantity} — ৳${item.subtotal}</li>
-          `).join("");
+          const itemsHtml = (order.items || [])
+            .map(
+              (item) => `
+                <li>${escapeHtml(item.item_name)} × ${item.quantity} — ৳${item.subtotal}</li>
+              `,
+            )
+            .join("");
+
+          const normalizedStatus = String(order.status || "").toLowerCase();
+          const canReview =
+            !order.review_submitted &&
+            ["confirmed", "completed"].includes(normalizedStatus);
+
+          const reviewBlock = order.review_submitted
+            ? `
+              <div class="review-done-badge">Review Submitted</div>
+            `
+            : canReview
+              ? `
+                <div class="review-form">
+                  <h4>Rate and Review</h4>
+
+                  <div class="rating-stars" data-order-id="${order.id}">
+                    <span class="star" onclick="setRating(${order.id}, 1)">★</span>
+                    <span class="star" onclick="setRating(${order.id}, 2)">★</span>
+                    <span class="star" onclick="setRating(${order.id}, 3)">★</span>
+                    <span class="star" onclick="setRating(${order.id}, 4)">★</span>
+                    <span class="star" onclick="setRating(${order.id}, 5)">★</span>
+                  </div>
+
+                  <input type="hidden" id="rating-${order.id}" value="0" />
+
+                  <textarea
+                    id="comment-${order.id}"
+                    class="review-textarea"
+                    placeholder="Write your review here..."
+                  ></textarea>
+
+                  <div class="review-actions">
+                    <button type="button" class="primary-btn" onclick="submitReview(${order.id})">
+                      Submit Review
+                    </button>
+                  </div>
+
+                  <div id="review-message-${order.id}" class="message"></div>
+                </div>
+              `
+              : "";
 
           ordersDiv.innerHTML += `
             <div class="order-card">
@@ -359,7 +415,7 @@
 
               <p><strong>Restaurant:</strong> ${escapeHtml(order.restaurant_name)}</p>
               <p><strong>Total:</strong> ৳${order.total_amount}</p>
-              <p><strong>Placed:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+              <p><strong>Placed:</strong> ${formatDateTime(order.created_at)}</p>
 
               <div class="order-items">
                 <h4>Items</h4>
@@ -371,9 +427,69 @@
               <div class="order-actions">
                 <a class="primary-btn order-link" href="/order-confirmation/${order.id}/">View Confirmation</a>
               </div>
+
+              ${reviewBlock}
             </div>
           `;
         });
+      }
+
+      function setRating(orderId, rating) {
+        document.getElementById(`rating-${orderId}`).value = rating;
+
+        const starsContainer = document.querySelector(
+          `.rating-stars[data-order-id="${orderId}"]`,
+        );
+
+        if (!starsContainer) return;
+
+        const stars = starsContainer.querySelectorAll(".star");
+        stars.forEach((star, index) => {
+          if (index < rating) {
+            star.classList.add("active");
+          } else {
+            star.classList.remove("active");
+          }
+        });
+      }
+
+      async function submitReview(orderId) {
+        const ratingInput = document.getElementById(`rating-${orderId}`);
+        const commentInput = document.getElementById(`comment-${orderId}`);
+        const messageBox = document.getElementById(`review-message-${orderId}`);
+
+        const rating = parseInt(ratingInput.value || "0", 10);
+        const comment = commentInput.value.trim();
+
+        if (!rating || rating < 1 || rating > 5) {
+          messageBox.innerHTML = `<span class="error-text">Please select a star rating from 1 to 5.</span>`;
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/orders/${orderId}/review/`, {
+            method: "POST",
+            headers: authHeaders({
+              "Content-Type": "application/json",
+            }),
+            body: JSON.stringify({
+              rating,
+              comment,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            messageBox.innerHTML = `<span class="success-text">Review submitted successfully.</span>`;
+            await loadDashboard();
+            await loadOrders();
+          } else {
+            messageBox.innerHTML = `<span class="error-text">${escapeHtml(data.error || "Failed to submit review.")}</span>`;
+          }
+        } catch (error) {
+          messageBox.innerHTML = `<span class="error-text">Server communication error.</span>`;
+        }
       }
 
       function populateFilters() {

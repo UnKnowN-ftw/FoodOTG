@@ -694,3 +694,151 @@ textarea:focus {
     gap: 10px;
     flex-wrap: wrap;
 }
+
+.orders-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+}
+
+.order-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: 0 8px 20px rgba(28, 36, 48, 0.05);
+}
+
+.order-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.order-top h3 {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.order-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    background: var(--accent);
+    color: var(--primary-dark);
+    text-transform: capitalize;
+}
+
+.order-card p {
+    color: var(--muted);
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.order-items {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.order-items h4 {
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.order-items ul {
+    padding-left: 20px;
+    color: var(--muted);
+}
+
+.order-items li {
+    margin-bottom: 6px;
+}
+
+.order-actions {
+    margin-top: 16px;
+}
+
+.order-link {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.review-form {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.review-form h4 {
+    margin-bottom: 12px;
+    font-size: 17px;
+}
+
+.rating-stars {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.star {
+    font-size: 28px;
+    cursor: pointer;
+    color: #d1d5db;
+    transition: color 0.2s ease, transform 0.2s ease;
+    user-select: none;
+}
+
+.star:hover {
+    transform: scale(1.08);
+}
+
+.star.active {
+    color: #f59e0b;
+}
+
+.review-textarea {
+    width: 100%;
+    min-height: 100px;
+    resize: vertical;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-soft);
+    color: var(--text);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.review-textarea:focus {
+    border-color: #ffc0b6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(255, 107, 87, 0.08);
+}
+
+.review-actions {
+    margin-top: 12px;
+}
+
+.review-done-badge {
+    margin-top: 18px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #ecfdf3;
+    color: #15803d;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.cart-footer-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
