@@ -5,9 +5,9 @@ name = "pypi"
 
 [packages]
 pillow = "*"
-django = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
+django = "*"
 
 [dev-packages]
 
