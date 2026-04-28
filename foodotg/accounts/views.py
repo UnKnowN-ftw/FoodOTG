@@ -546,12 +546,34 @@ def checkout_summary(request):
 
     restaurant = cart_items[0].menu_item.restaurant
     serializer = CartSerializer(cart)
+    
+    subtotal = cart.total_price
+
+    deal = Deal.objects.filter(
+        restaurant=restaurant,
+        active_status=True,
+        minimum_order_amount__lte=subtotal
+    ).order_by("-discount_value").first()
+
+    discount_amount = Decimal("0.00")
+
+    if deal:
+        if deal.discount_type == "percentage":
+            discount_amount = (subtotal * deal.discount_value / Decimal("100")).quantize(Decimal("0.01"))
+        elif deal.discount_type == "fixed":
+            discount_amount = min(deal.discount_value, subtotal)
+
+    final_total = (subtotal - discount_amount).quantize(Decimal("0.01"))
 
     return Response(
         {
             "restaurant_id": restaurant.id,
             "restaurant_name": restaurant.name,
             "cart": serializer.data,
+            "subtotal": subtotal,
+            "discount_amount": discount_amount,
+            "final_total": final_total,
+            "applied_deal": deal.title if deal else None,
         },
         status=status.HTTP_200_OK,
     )
@@ -589,12 +611,31 @@ def place_order(request):
         (item.subtotal for item in cart_items),
         Decimal("0.00")
     ).quantize(Decimal("0.01"))
+    
+    deal = Deal.objects.filter(
+        restaurant=restaurant,
+        active_status=True,
+        minimum_order_amount__lte=total_amount
+    ).order_by("-discount_value").first()
+
+    discount_amount = Decimal("0.00")
+
+    if deal:
+        if deal.discount_type == "percentage":
+            discount_amount = (total_amount * deal.discount_value / Decimal("100")).quantize(Decimal("0.01"))
+        elif deal.discount_type == "fixed":
+            discount_amount = min(deal.discount_value, total_amount)
+
+    final_amount = (total_amount - discount_amount).quantize(Decimal("0.01"))
 
     with transaction.atomic():
         order = Order.objects.create(
             customer=request.user,
             restaurant=restaurant,
-            total_amount=total_amount,
+            original_amount=total_amount,
+            discount_amount=discount_amount,
+            applied_deal_title=deal.title if deal else None,
+            total_amount=final_amount,
             status="confirmed",
         )
 
@@ -618,7 +659,9 @@ def place_order(request):
                     f"Hello {request.user.first_name or request.user.username},\n\n"
                     f"Your order #{order.id} has been confirmed.\n"
                     f"Restaurant: {restaurant.name}\n"
-                    f"Total: ৳{order.total_amount}\n\n"
+                    f"Original Total: ৳{total_amount}\n"
+                    f"Discount: ৳{discount_amount}\n"
+                    f"Final Total: ৳{order.total_amount}\n\n"
                     f"Thank you for ordering with FoodOTG."
                 ),
                 from_email=None,
@@ -633,6 +676,10 @@ def place_order(request):
         {
             "message": "Order placed successfully.",
             "order_id": order.id,
+            "original_amount": total_amount,
+            "discount_amount": discount_amount,
+            "final_amount": final_amount,
+            "applied_deal": deal.title if deal else None,
             "notification_sent": notification_sent,
             "redirect_url": f"/order-confirmation/{order.id}/",
         },
@@ -718,3 +765,56 @@ def submit_review(request, order_id):
         },
         status=status.HTTP_201_CREATED,
     )
+    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def business_promotions(request):
+    deals = Deal.objects.filter(restaurant__owner=request.user).select_related("restaurant")
+    serializer = DealSerializer(deals, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_promotion(request):
+    restaurant_id = request.data.get("restaurant")
+
+    try:
+        restaurant = Restaurant.objects.get(id=restaurant_id, owner=request.user)
+    except Restaurant.DoesNotExist:
+        return Response({"error": "Restaurant not found or access denied."}, status=404)
+
+    serializer = DealSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(restaurant=restaurant)
+        return Response({"message": "Promotion added successfully."}, status=201)
+
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_promotion(request, deal_id):
+    try:
+        deal = Deal.objects.get(id=deal_id, restaurant__owner=request.user)
+    except Deal.DoesNotExist:
+        return Response({"error": "Promotion not found or access denied."}, status=404)
+
+    serializer = DealSerializer(deal, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "Promotion updated successfully."}, status=200)
+
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_promotion(request, deal_id):
+    try:
+        deal = Deal.objects.get(id=deal_id, restaurant__owner=request.user)
+    except Deal.DoesNotExist:
+        return Response({"error": "Promotion not found or access denied."}, status=404)
+
+    deal.delete()
+    return Response({"message": "Promotion deleted successfully."}, status=200)

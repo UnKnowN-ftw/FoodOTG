@@ -73,7 +73,18 @@ class DealSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Deal
-        fields = ["id", "title", "description", "active_status", "restaurant_name"]
+        fields = [
+            "id",
+            "restaurant",
+            "restaurant_name",
+            "title",
+            "description",
+            "active_status",
+            "discount_type",
+            "discount_value",
+            "minimum_order_amount",
+        ]
+        read_only_fields = ["restaurant_name"]
 
 
 class PreferenceSerializer(serializers.ModelSerializer):
@@ -186,6 +197,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "restaurant_name",
             "status",
             "total_amount",
+            "original_amount",
+            "discount_amount",
+            "applied_deal_title",
             "created_at",
             "items",
             "review_submitted",

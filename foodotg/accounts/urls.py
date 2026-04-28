@@ -44,6 +44,10 @@ urlpatterns = [
     path("business-login/", views.business_login_page),
     path("business-register/", views.business_register_page),
     path("business-dashboard/", views.business_dashboard_page),
-
+    path("api/business-promotions/", views.business_promotions),
+    path("api/promotions/add/", views.add_promotion),
+    path("api/promotions/<int:deal_id>/update/", views.update_promotion),
+    path("api/promotions/<int:deal_id>/delete/", views.delete_promotion),
+    
     path("order-confirmation/<int:order_id>/", views.order_confirmation_page),
 ]

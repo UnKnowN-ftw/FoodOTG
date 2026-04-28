@@ -128,6 +128,15 @@
 </div>
 
 <!-- =========================
+     PROMOTIONS SECTION
+========================= -->
+<div class="section">
+    <h3>Manage Promotions</h3>
+    <button type="button" onclick="openPromotionModal()">Add Promotion</button>
+    <div id="promotionList" class="grid"></div>
+</div>
+
+<!-- =========================
      MENU MODAL
 ========================= -->
 <div id="menuModal" class="modal">
@@ -169,6 +178,63 @@
             <h3>Menu Items</h3>
             <div id="menuItemsList" class="grid"></div>
         </div>
+    </div>
+</div>
+
+/* =========================
+     PROMOTION MODAL
+========================= */
+<div id="promotionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Promotion</h3>
+            <span class="close" onclick="closePromotionModal()">&times;</span>
+        </div>
+
+        <div id="promotionMsg" class="error"></div>
+
+        <form id="promotionForm">
+            <div class="input-group">
+                <select name="restaurant" id="promotionRestaurant" required></select>
+            </div>
+
+            <div class="input-group">
+                <input type="text" name="title" placeholder="Promotion Title" required>
+            </div>
+
+            <div class="input-group">
+                <textarea name="description" placeholder="Promotion Description" required></textarea>
+            </div>
+
+            <div class="row">
+                <div class="input-group">
+                    <select name="discount_type" required>
+                        <option value="percentage">Percentage Discount</option>
+                        <option value="fixed">Fixed Amount Discount</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <input type="number" name="discount_value" step="0.01" min="0" placeholder="Discount Value" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <input type="number" name="minimum_order_amount" step="0.01" min="0" placeholder="Minimum Order Amount" required>
+            </div>
+
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="active_status" checked>
+                    Active Promotion
+                </label>
+            </div>
+
+            <div class="button-row">
+                <button type="submit">Save Promotion</button>
+                <button type="button" class="secondary-btn" onclick="closePromotionModal()">Cancel</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -243,6 +309,16 @@ const reviewList = document.getElementById("reviewList");
 let currentRestaurantId = null;
 let editingMenuItemId = null;
 
+const promotionModal = document.getElementById("promotionModal");
+const promotionForm = document.getElementById("promotionForm");
+const promotionMsg = document.getElementById("promotionMsg");
+const promotionList = document.getElementById("promotionList");
+const promotionRestaurant = document.getElementById("promotionRestaurant");
+
+let businessRestaurants = [];
+let editingPromotionId = null;
+
+
 /* =========================
    RESTAURANT MODAL
 ========================= */
@@ -270,6 +346,7 @@ async function loadRestaurants() {
         }
 
         const restaurants = await response.json();
+        businessRestaurants = restaurants;
         renderRestaurants(restaurants);
         updateStats(restaurants);
     } catch (error) {
@@ -281,6 +358,157 @@ async function loadRestaurants() {
         `;
     }
 }
+
+/* =========================
+   PROMOTION MODAL
+========================= */
+function openPromotionModal() {
+    promotionModal.style.display = "flex";
+    promotionForm.reset();
+    promotionMsg.innerText = "";
+    editingPromotionId = null;
+    populatePromotionRestaurants();
+}
+
+function closePromotionModal() {
+    promotionModal.style.display = "none";
+    promotionForm.reset();
+    promotionMsg.innerText = "";
+    editingPromotionId = null;
+}
+
+function populatePromotionRestaurants() {
+    promotionRestaurant.innerHTML = "";
+
+    businessRestaurants.forEach((restaurant) => {
+        promotionRestaurant.innerHTML += `
+            <option value="${restaurant.id}">${escapeHtml(restaurant.name)}</option>
+        `;
+    });
+}
+
+/* =========================
+   LOAD PROMOTIONS
+========================= */
+async function loadPromotions() {
+    try {
+        const response = await fetch("/api/business-promotions/", {
+            headers: authHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load promotions");
+        }
+
+        const promotions = await response.json();
+        renderPromotions(promotions);
+    } catch (error) {
+        promotionList.innerHTML = `
+            <div class="empty-state">
+                <h4>Unable to load promotions</h4>
+                <p>Please try again later.</p>
+            </div>
+        `;
+    }
+}
+
+function renderPromotions(promotions) {
+    promotionList.innerHTML = "";
+
+    if (!promotions.length) {
+        promotionList.innerHTML = `
+            <div class="empty-state">
+                <h4>No Promotions Yet</h4>
+                <p>Create promotions to show them as active customer deals.</p>
+            </div>
+        `;
+        return;
+    }
+
+    promotions.forEach((promotion) => {
+        const safeTitle = String(promotion.title).replace(/'/g, "\\'");
+        const safeDescription = String(promotion.description || "").replace(/'/g, "\\'");
+
+        promotionList.innerHTML += `
+            <div class="card">
+                <div class="card-body">
+                    <h4>${escapeHtml(promotion.title)}</h4>
+                    <p>${escapeHtml(promotion.description)}</p>
+                    <p><strong>Restaurant:</strong> ${escapeHtml(promotion.restaurant_name || "")}</p>
+                    <p><strong>Status:</strong> ${promotion.active_status ? "Active" : "Inactive"}</p>
+
+                    <div class="card-actions">
+                        <button type="button" onclick="editPromotion(${promotion.id}, ${promotion.restaurant}, '${safeTitle}', '${safeDescription}', ${promotion.active_status})">Edit</button>
+                        <button type="button" class="secondary-btn" onclick="deletePromotion(${promotion.id})">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function editPromotion(id, restaurantId, title, description, activeStatus) {
+    editingPromotionId = id;
+    populatePromotionRestaurants();
+
+    document.getElementById("promotionRestaurant").value = restaurantId;
+    promotionForm.elements["title"].value = title;
+    promotionForm.elements["description"].value = description;
+    promotionForm.elements["active_status"].checked = activeStatus;
+
+    promotionModal.style.display = "flex";
+}
+
+async function deletePromotion(promotionId) {
+    if (!confirm("Are you sure you want to delete this promotion?")) return;
+
+    const response = await fetch(`/api/promotions/${promotionId}/delete/`, {
+        method: "DELETE",
+        headers: authHeaders()
+    });
+
+    if (response.ok) {
+        loadPromotions();
+    } else {
+        alert("Failed to delete promotion.");
+    }
+}
+
+promotionForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(promotionForm);
+
+    const payload = {
+        restaurant: formData.get("restaurant"),
+        title: formData.get("title"),
+        description: formData.get("description"),
+        active_status: formData.get("active_status") === "on"
+    };
+
+    let url = "/api/promotions/add/";
+    let method = "POST";
+
+    if (editingPromotionId) {
+        url = `/api/promotions/${editingPromotionId}/update/`;
+        method = "PUT";
+    }
+
+    const response = await fetch(url, {
+        method,
+        headers: authHeaders({
+            "Content-Type": "application/json"
+        }),
+        body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+        closePromotionModal();
+        loadPromotions();
+    } else {
+        promotionMsg.innerText = "Failed to save promotion.";
+    }
+});
 
 /* =========================
    LOAD REVIEWS
@@ -626,6 +854,7 @@ async function logout() {
 ========================= */
 loadRestaurants();
 loadReviews();
+loadPromotions();
 </script>
 
 </body>
