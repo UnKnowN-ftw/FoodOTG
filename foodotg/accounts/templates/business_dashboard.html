@@ -220,9 +220,19 @@ if (!getAccessToken()) {
     window.location.href = "/business-login/";
 }
 
-if (localStorage.getItem("role") !== "business_owner") {
-    alert("Access denied. This page is for business owners only.");
-    window.location.href = "/customer-dashboard/";
+if (data.role !== "business_owner" && data.role !== "admin") {
+    msg.innerText = "This account is not registered as a business owner or admin.";
+    return;
+}
+
+localStorage.setItem("token", data.access);
+localStorage.setItem("refresh", data.refresh);
+localStorage.setItem("role", data.role);
+
+if (data.role === "admin") {
+    window.location.href = "/admin-dashboard/";
+} else {
+    window.location.href = "/business-dashboard/";
 }
 
 /* =========================

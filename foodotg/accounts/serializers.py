@@ -20,7 +20,10 @@ from .models import (
 class RegisterSerializer(serializers.ModelSerializer):
     name = serializers.CharField(write_only=True, required=True)
     role = serializers.ChoiceField(
-        choices=[("customer", "Customer"), ("business_owner", "Business Owner")]
+    choices=[
+        ("customer", "Customer"),
+        ("business_owner", "Business Owner"),
+        ("admin", "Admin"),]
     )
 
     class Meta:
@@ -198,6 +201,7 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_review(self, obj):
         if hasattr(obj, "review"):
             return {
+                "id": obj.review.id,
                 "rating": obj.review.rating,
                 "comment": obj.review.comment,
                 "created_at": obj.review.created_at,

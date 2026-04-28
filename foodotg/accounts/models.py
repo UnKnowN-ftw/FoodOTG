@@ -8,9 +8,10 @@ from django.utils.timezone import now
 
 class UserProfile(models.Model):
     ROLE_CHOICES = (
-        ('customer', 'Customer'),
-        ('business_owner', 'Business Owner'),
-    )
+    ('customer', 'Customer'),
+    ('business_owner', 'Business Owner'),
+    ('admin', 'Admin'),
+)
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
@@ -145,6 +146,18 @@ class Review(models.Model):
     )
     comment = models.TextField(blank=True, null=True)
     is_approved = models.BooleanField(default=True)
+
+    # ✅ ADD HERE (INSIDE CLASS)
+    is_reported = models.BooleanField(default=False)
+    report_reason = models.TextField(blank=True, null=True)
+    reported_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reported_reviews"
+    )
+
     created_at = models.DateTimeField(default=now, editable=False)
 
     def __str__(self):

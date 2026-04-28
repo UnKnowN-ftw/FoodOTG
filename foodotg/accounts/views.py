@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.models import User
 
 from .models import (
     Cart,
@@ -134,6 +135,8 @@ def customer_login_page(request):
 def business_login_page(request):
     return render(request, "business_login.html")
 
+def admin_login_page(request):
+    return render(request, "admin_login.html")
 
 def register_page(request):
     return render(request, "register.html")
@@ -718,3 +721,158 @@ def submit_review(request, order_id):
         },
         status=status.HTTP_201_CREATED,
     )
+# =========================
+# ADMIN HELPERS
+# =========================
+def is_admin_user(user):
+    try:
+        return user.userprofile.role == "admin"
+    except UserProfile.DoesNotExist:
+        return False
+
+
+# =========================
+# ADMIN PAGE
+# =========================
+def admin_dashboard_page(request):
+    return render(request, "admin_dashboard.html")
+
+
+# =========================
+# ADMIN USER MANAGEMENT
+# =========================
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_users(request):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    users = User.objects.all().select_related("userprofile").order_by("id")
+
+    data = []
+    for user in users:
+        try:
+            role = user.userprofile.role
+        except UserProfile.DoesNotExist:
+            role = "customer"
+
+        data.append({
+            "id": user.id,
+            "name": user.first_name or user.username,
+            "email": user.email or user.username,
+            "username": user.username,
+            "role": role,
+            "is_staff": user.is_staff,
+            "is_active": user.is_active,
+        })
+
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_user(request, user_id):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.user.id == user_id:
+        return Response(
+            {"error": "You cannot delete your own admin account."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    user.delete()
+    return Response({"message": "User deleted successfully"}, status=status.HTTP_200_OK)
+
+
+# =========================
+# ADMIN REVIEW MODERATION
+# =========================
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_reviews(request):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    reviews = Review.objects.select_related(
+        "user",
+        "restaurant",
+        "order"
+    ).order_by("-created_at")
+
+    data = []
+    for review in reviews:
+        data.append({
+            "id": review.id,
+            "restaurant_name": review.restaurant.name,
+            "customer_name": review.user.first_name or review.user.username,
+            "customer_email": review.user.email or review.user.username,
+            "order_id": review.order.id,
+            "rating": review.rating,
+            "comment": review.comment,
+            "is_reported": review.is_reported,
+            "report_reason": review.report_reason,
+            "created_at": review.created_at,
+        })
+
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def approve_review(request, review_id):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        review = Review.objects.get(id=review_id)
+    except Review.DoesNotExist:
+        return Response({"error": "Review not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    review.is_approved = True
+    review.save(update_fields=["is_approved"])
+
+    update_restaurant_average_rating(review.restaurant)
+
+    return Response({"message": "Review approved successfully"}, status=status.HTTP_200_OK)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+
+def report_review(request, review_id):
+    try:
+        review = Review.objects.get(id=review_id)
+    except Review.DoesNotExist:
+        return Response({"error": "Review not found"}, status=404)
+
+    reason = request.data.get("reason", "").strip()
+
+    review.is_reported = True
+    review.report_reason = reason
+    review.reported_by = request.user
+    review.save()
+
+    return Response({"message": "Review reported successfully"})
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_review(request, review_id):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        review = Review.objects.get(id=review_id)
+    except Review.DoesNotExist:
+        return Response({"error": "Review not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    restaurant = review.restaurant
+    review.delete()
+
+    update_restaurant_average_rating(restaurant)
+
+    return Response({"message": "Review deleted successfully"}, status=status.HTTP_200_OK)

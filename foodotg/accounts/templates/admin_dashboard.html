@@ -1,0 +1,304 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOTG | Admin Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/business_dashboard_styles.css' %}">
+
+<style>
+body {
+    background: linear-gradient(135deg, #2b0a0a, #3b1414, #5c1a1a);
+    font-family: "Segoe UI", sans-serif;
+}
+
+/* Container */
+.container {
+    background: #fff8f5;
+    border-radius: 18px;
+    padding: 24px;
+    color: #3b1414;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #5c1a1a, #7a1f1f);
+    padding: 22px;
+    border-radius: 14px;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.header h2 {
+    font-size: 28px;
+}
+
+.subtitle {
+    color: #f5dada;
+}
+
+/* Stats */
+.stat-card {
+    background: #fff1eb;
+    border-radius: 12px;
+    padding: 18px;
+    border: 1px solid #d6a7a7;
+}
+
+.stat-card h3 {
+    color: #7a1f1f;
+}
+
+/* Section */
+.section h3 {
+    color: #5c1a1a;
+    border-left: 5px solid #7a1f1f;
+    padding-left: 10px;
+}
+
+/* Cards */
+.card,
+.review-card {
+    background: #ffffff;
+    border: 1px solid #e0bcbc;
+    border-radius: 12px;
+    padding: 14px;
+    transition: 0.3s;
+}
+
+.card:hover,
+.review-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(92, 26, 26, 0.25);
+}
+
+/* Reported reviews */
+.review-card.reported {
+    border: 2px solid #a11;
+    background: #fff0f0;
+}
+
+/* Badges */
+.badge {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-admin {
+    background: #5c1a1a;
+    color: white;
+}
+
+.badge-business {
+    background: #8b4513;
+    color: white;
+}
+
+.badge-customer {
+    background: #a0522d;
+    color: white;
+}
+
+.badge-reported {
+    background: #b91c1c;
+    color: white;
+}
+
+.badge-approved {
+    background: #166534;
+    color: white;
+}
+
+.badge-pending {
+    background: #d97706;
+    color: white;
+}
+
+/* Buttons */
+button {
+    background: linear-gradient(135deg, #7a1f1f, #a11);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #5c1a1a, #7a1f1f);
+}
+
+.secondary-btn {
+    background: #5a3e36;
+}
+
+.secondary-btn:hover {
+    background: #3b2a24;
+}
+
+.logout-btn {
+    background: #2b0a0a;
+}
+
+.logout-btn:hover {
+    background: #000;
+}
+
+/* Text */
+.review-meta {
+    color: #6b4c4c;
+}
+
+.review-comment {
+    color: #3b1414;
+}
+
+/* Empty state */
+.empty-state {
+    background: #fff1eb;
+    border: 1px solid #e0bcbc;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <h2>Admin Dashboard</h2>
+            <p class="subtitle">Manage users and remove fake reviews</p>
+        </div>
+
+        <div class="header-actions">
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3 id="totalUsers">0</h3>
+            <p>Total Users</p>
+        </div>
+
+        <div class="stat-card">
+            <h3 id="totalReviews">0</h3>
+            <p>Total Reviews</p>
+        </div>
+
+        <div class="stat-card">
+            <h3 id="reportedReviews">0</h3>
+            <p>Reported Reviews</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>User Management</h3>
+        <div id="userList" class="grid"></div>
+    </div>
+
+    <div class="section">
+        <h3>Review Moderation</h3>
+        <div id="reviewList" class="reviews-grid"></div>
+    </div>
+</div>
+
+<script>
+function getAccessToken() {
+    return localStorage.getItem("token");
+}
+
+function authHeaders() {
+    return {
+        "Authorization": "Bearer " + getAccessToken()
+    };
+}
+
+if (!getAccessToken()) {
+    window.location.href = "/admin-login/";
+}
+
+if (localStorage.getItem("role") !== "admin") {
+    alert("Access denied");
+    window.location.href = "/login/";
+}
+
+const userList = document.getElementById("userList");
+const reviewList = document.getElementById("reviewList");
+
+async function loadUsers() {
+    const res = await fetch("/api/admin/users/", { headers: authHeaders() });
+    const users = await res.json();
+
+    userList.innerHTML = "";
+
+    users.forEach(u => {
+        userList.innerHTML += `
+        <div class="card">
+            <h4>${u.name}</h4>
+            <span class="badge">${u.role}</span>
+            <p>${u.email}</p>
+            ${u.role !== "admin" ? `<button onclick="deleteUser(${u.id})">Delete</button>` : ""}
+        </div>`;
+    });
+
+    document.getElementById("totalUsers").innerText = users.length;
+}
+
+async function loadReviews() {
+    const res = await fetch("/api/admin/reviews/", { headers: authHeaders() });
+    const reviews = await res.json();
+
+    reviewList.innerHTML = "";
+
+    let reportedCount = 0;
+
+    reviews.forEach(r => {
+        if (r.is_reported) reportedCount++;
+
+        reviewList.innerHTML += `
+        <div class="review-card ${r.is_reported ? "reported" : ""}">
+            <h4>${r.restaurant_name}</h4>
+            <p>${r.customer_name}</p>
+            <p>${r.comment}</p>
+
+            ${r.is_reported ? `<p><strong>Reason:</strong> ${r.report_reason}</p>` : ""}
+
+            <button onclick="deleteReview(${r.id})">Delete</button>
+        </div>`;
+    });
+
+    document.getElementById("totalReviews").innerText = reviews.length;
+    document.getElementById("reportedReviews").innerText = reportedCount;
+}
+
+async function deleteUser(id) {
+    await fetch(`/api/admin/users/${id}/delete/`, {
+        method: "DELETE",
+        headers: authHeaders()
+    });
+    loadUsers();
+}
+
+async function deleteReview(id) {
+    await fetch(`/api/admin/reviews/${id}/delete/`, {
+        method: "DELETE",
+        headers: authHeaders()
+    });
+    loadReviews();
+}
+
+function logout() {
+    localStorage.clear();
+    window.location.href = "/login/";
+}
+
+loadUsers();
+loadReviews();
+</script>
+
+</body>
+</html>

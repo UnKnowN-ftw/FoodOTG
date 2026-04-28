@@ -391,6 +391,12 @@
                 <p class="review-rating-label">Rating: ${order.review.rating}/5</p>
                 <p class="review-comment">${escapeHtml(order.review.comment || "No comment added.")}</p>
                 <p class="review-date">Submitted: ${formatDateTime(order.review.created_at)}</p>
+
+                <div class="review-actions">
+                  <button type="button" class="danger-btn" onclick="reportReview(${order.review.id})">
+                    Report Fake Review
+                  </button>
+                </div>
               </div>
             `
             : order.review_submitted
@@ -942,19 +948,20 @@
       });
 
       async function logout() {
-        try {
-          await fetch("/api/logout/", {
-            method: "POST",
-            headers: authHeaders(),
-          });
-        } catch (error) {}
+    try {
+    await fetch("/api/logout/", {
+      method: "POST",
+      headers: authHeaders(),
+    });
+  } catch (error) {}
 
-        localStorage.removeItem("token");
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("role");
-        window.location.href = "/login/";
-      }
+  localStorage.removeItem("token");
+  localStorage.removeItem("access");
+  localStorage.removeItem("refresh");
+  localStorage.removeItem("role");
+
+  window.location.href = "/login/";
+}
 
       function goToCheckout() {
         window.location.href = "/checkout/";
