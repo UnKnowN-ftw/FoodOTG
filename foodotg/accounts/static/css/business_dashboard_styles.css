@@ -535,3 +535,32 @@ textarea {
 #menuForm .input-group textarea {
     font-size: 13px;
 }
+
+.restaurant-location-map {
+    width: 100%;
+    height: 320px;
+    border-radius: 16px;
+    border: 1px solid #d1d5db;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.map-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.map-help-text {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 8px;
+}
+
+#restaurantLatitude,
+#restaurantLongitude {
+    background: #f8fafc;
+    cursor: not-allowed;
+}
