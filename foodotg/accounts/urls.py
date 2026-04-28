@@ -44,13 +44,13 @@ urlpatterns = [
     path("customer-login/", views.customer_login_page, name="customer_login"),
     path("customer-register/", views.customer_register_page),
     path("customer-dashboard/", views.customer_dashboard_page, name="customer_dashboard"),
+	path("checkout/", views.checkout_page),
 
     path("business-login/", views.business_login_page, name="business_login"),
     path("business-register/", views.business_register_page),
-    path("business-dashboard/", views.business_dashboard_page, name="business_dashboard"),
-
-    # ================= ADMIN (FIXED) =================
-    path("admin-login/", views.admin_login_page, name="admin_login"),   # 🔥 ADD THIS
+    path("business-dashboard/", views.business_dashboard_page),
+	
+    path("admin-login/", views.admin_login_page, name="admin_login"),
     path("admin-dashboard/", views.admin_dashboard_page, name="admin_dashboard"),
 
     path("api/admin/users/", views.admin_users),
@@ -60,9 +60,15 @@ urlpatterns = [
     path("api/admin/reviews/<int:review_id>/approve/", views.approve_review),
     path("api/admin/reviews/<int:review_id>/delete/", views.delete_review),
 
-    # ================= OTHER =================
-    path("checkout/", views.checkout_page),
     path("order-confirmation/<int:order_id>/", views.order_confirmation_page),
 	
     path("api/reviews/<int:review_id>/report/", views.report_review),
+	
+    path("rider-dashboard/", views.rider_dashboard_page, name="rider_dashboard"),
+
+    path("api/admin/riders/", views.admin_riders),
+    path("api/admin/orders/", views.admin_orders),
+    path("api/admin/orders/<int:order_id>/assign-rider/", views.assign_rider_to_order),
+
+    path("api/rider/orders/", views.rider_orders),
 ]

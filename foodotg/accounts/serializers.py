@@ -2,7 +2,7 @@ import re
 
 from django.contrib.auth.models import User
 from rest_framework import serializers
-
+from .models import Rider
 from .models import (
     Cart,
     CartItem,
@@ -66,9 +66,24 @@ class RestaurantSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ["owner", "average_rating", "created_at"]
 
-    def create(self, validated_data):
-        request = self.context.get("request")
-        return Restaurant.objects.create(owner=request.user, **validated_data)
+def create(self, validated_data):
+    role = validated_data.pop("role", "customer")
+
+    user = User.objects.create_user(
+        username=validated_data["username"],
+        email=validated_data.get("email"),
+        password=validated_data["password"],
+        first_name=validated_data.get("first_name", "")
+    )
+
+    # create user profile
+    UserProfile.objects.create(user=user, role=role)
+
+    # ✅ ADD THIS LINE HERE
+    if role == "rider":
+        Rider.objects.create(user=user)
+
+    return user
 
 
 class DealSerializer(serializers.ModelSerializer):
@@ -76,7 +91,18 @@ class DealSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Deal
-        fields = ["id", "title", "description", "active_status", "restaurant_name"]
+        fields = [
+            "id",
+            "restaurant",
+            "restaurant_name",
+            "title",
+            "description",
+            "active_status",
+            "discount_type",
+            "discount_value",
+            "minimum_order_amount",
+        ]
+        read_only_fields = ["restaurant_name"]
 
 
 class PreferenceSerializer(serializers.ModelSerializer):
@@ -189,6 +215,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "restaurant_name",
             "status",
             "total_amount",
+            "original_amount",
+            "discount_amount",
+            "applied_deal_title",
             "created_at",
             "items",
             "review_submitted",
@@ -207,3 +236,11 @@ class OrderSerializer(serializers.ModelSerializer):
                 "created_at": obj.review.created_at,
             }
         return None
+choices=[
+    ("customer", "Customer"),
+    ("business_owner", "Business Owner"),
+    ("admin", "Admin"),
+    ("rider", "Rider"),
+]
+
+

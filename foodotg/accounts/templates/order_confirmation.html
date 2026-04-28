@@ -110,7 +110,12 @@ async function loadConfirmation() {
             </div>
 
             <div class="order-total">
-                Total: ৳${data.total_amount}
+                ${data.applied_deal_title ? `
+                    <div>Original Total: ৳${data.original_amount}</div>
+                    <div>Applied Deal: ${escapeHtml(data.applied_deal_title)}</div>
+                    <div>Discount: -৳${data.discount_amount}</div>
+                ` : ""}
+                <div>Final Total: ৳${data.total_amount}</div>
             </div>
         `;
     } catch (error) {

@@ -4,10 +4,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>FoodOTG | Customer Dashboard</title>
     <link
       rel="stylesheet"
       href="{% static 'css/customer_dashboard_styles.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
   </head>
   <body>
@@ -154,6 +159,24 @@
           </div>
           <div id="restaurants" class="content-grid"></div>
         </section>
+        <div class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Restaurants on Map</h2>
+              <p>Find restaurants around your area.</p>
+            </div>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="detectCustomerLocation()"
+            >
+              Detect My Location
+            </button>
+          </div>
+
+          <div id="customerRestaurantMap" class="customer-map"></div>
+        </div>
 
         <section class="panel">
           <div class="section-header">
@@ -208,6 +231,7 @@
       </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
       function getAccessToken() {
         return localStorage.getItem("token") || localStorage.getItem("access");
@@ -233,6 +257,79 @@
 
       if (!requireCustomerAuth()) {
         throw new Error("Authentication required.");
+      }
+
+      let customerRestaurantMap = null;
+      let customerLocationMarker = null;
+      let restaurantMarkers = [];
+      const defaultMapLat = 23.8103;
+      const defaultMapLng = 90.4125;
+
+      function initCustomerRestaurantMap(restaurants) {
+        if (!customerRestaurantMap) {
+          customerRestaurantMap = L.map("customerRestaurantMap").setView(
+            [defaultMapLat, defaultMapLng],
+            12,
+          );
+
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors",
+            referrerPolicy: "strict-origin-when-cross-origin",
+          }).addTo(customerRestaurantMap);
+        }
+
+        renderRestaurantMarkers(restaurants);
+
+        setTimeout(function () {
+          customerRestaurantMap.invalidateSize();
+        }, 200);
+      }
+
+      function renderRestaurantMarkers(restaurants) {
+        restaurantMarkers.forEach((marker) => marker.remove());
+        restaurantMarkers = [];
+
+        restaurants.forEach((restaurant) => {
+          if (!restaurant.latitude || !restaurant.longitude) return;
+
+          const marker = L.marker([
+            restaurant.latitude,
+            restaurant.longitude,
+          ]).addTo(customerRestaurantMap).bindPopup(`
+                  <strong>${escapeHtml(restaurant.name)}</strong><br>
+                  ${escapeHtml(restaurant.address || "")}<br>
+                  Rating: ${parseFloat(restaurant.average_rating || 0).toFixed(1)}
+              `);
+
+          restaurantMarkers.push(marker);
+        });
+      }
+
+      function detectCustomerLocation() {
+        if (!navigator.geolocation) {
+          alert("Location detection is not supported by this browser.");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            customerRestaurantMap.setView([lat, lng], 14);
+
+            if (customerLocationMarker) {
+              customerLocationMarker.setLatLng([lat, lng]);
+            } else {
+              customerLocationMarker = L.marker([lat, lng])
+                .addTo(customerRestaurantMap)
+                .bindPopup("You are here");
+            }
+          },
+          function () {
+            alert("Unable to detect your location.");
+          },
+        );
       }
 
       let businesses = [];
@@ -317,11 +414,14 @@
           userBudgetRange = data.budget_range || "";
           filteredBusinesses = [...businesses];
 
+          initCustomerRestaurantMap(businesses);
+
           applySavedPreferencesToUI();
           applyPreferenceFiltering();
           populateFilters();
           renderDeals();
           renderRestaurants();
+          renderRestaurantMarkers(filteredBusinesses);
           updateSummaryCounts();
         } catch (error) {
           document.getElementById("restaurants").innerHTML =
@@ -347,8 +447,7 @@
           orders = await response.json();
           renderOrders();
         } catch (error) {
-          ordersDiv.innerHTML =
-            `<div class="empty-card"><p>Failed to load orders.</p></div>`;
+          ordersDiv.innerHTML = `<div class="empty-card"><p>Failed to load orders.</p></div>`;
         }
       }
 
@@ -379,8 +478,9 @@
             !order.review_submitted &&
             ["confirmed", "completed"].includes(normalizedStatus);
 
-          const reviewBlock = order.review_submitted && order.review
-            ? `
+          const reviewBlock =
+            order.review_submitted && order.review
+              ? `
               <div class="review-display">
                 <div class="review-display-header">
                   <h4>Your Review</h4>
@@ -399,12 +499,12 @@
                 </div>
               </div>
             `
-            : order.review_submitted
-              ? `
+              : order.review_submitted
+                ? `
                 <div class="review-done-badge">Review Submitted</div>
               `
-              : canReview
-                ? `
+                : canReview
+                  ? `
                   <div class="review-form">
                     <h4>Rate and Review</h4>
 
@@ -433,7 +533,7 @@
                     <div id="review-message-${order.id}" class="message"></div>
                   </div>
                 `
-                : "";
+                  : "";
 
           ordersDiv.innerHTML += `
             <div class="order-card">
@@ -618,14 +718,19 @@
 
         filteredBusinesses = businesses.filter(
           (b) =>
-            (String(b.name || "").toLowerCase().includes(search) ||
-              String(b.category || "").toLowerCase().includes(search)) &&
+            (String(b.name || "")
+              .toLowerCase()
+              .includes(search) ||
+              String(b.category || "")
+                .toLowerCase()
+                .includes(search)) &&
             (category === "All" || b.category === category) &&
             (location === "All" || b.address === location),
         );
 
         applyPreferenceFiltering();
         renderRestaurants();
+        renderRestaurantMarkers(filteredBusinesses);
       }
 
       function applySavedPreferencesToUI() {

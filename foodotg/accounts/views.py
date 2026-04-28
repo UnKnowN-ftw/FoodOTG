@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
+from .models import Rider
 
 from .models import (
     Cart,
@@ -549,12 +550,34 @@ def checkout_summary(request):
 
     restaurant = cart_items[0].menu_item.restaurant
     serializer = CartSerializer(cart)
+    
+    subtotal = cart.total_price
+
+    deal = Deal.objects.filter(
+        restaurant=restaurant,
+        active_status=True,
+        minimum_order_amount__lte=subtotal
+    ).order_by("-discount_value").first()
+
+    discount_amount = Decimal("0.00")
+
+    if deal:
+        if deal.discount_type == "percentage":
+            discount_amount = (subtotal * deal.discount_value / Decimal("100")).quantize(Decimal("0.01"))
+        elif deal.discount_type == "fixed":
+            discount_amount = min(deal.discount_value, subtotal)
+
+    final_total = (subtotal - discount_amount).quantize(Decimal("0.01"))
 
     return Response(
         {
             "restaurant_id": restaurant.id,
             "restaurant_name": restaurant.name,
             "cart": serializer.data,
+            "subtotal": subtotal,
+            "discount_amount": discount_amount,
+            "final_total": final_total,
+            "applied_deal": deal.title if deal else None,
         },
         status=status.HTTP_200_OK,
     )
@@ -592,12 +615,31 @@ def place_order(request):
         (item.subtotal for item in cart_items),
         Decimal("0.00")
     ).quantize(Decimal("0.01"))
+    
+    deal = Deal.objects.filter(
+        restaurant=restaurant,
+        active_status=True,
+        minimum_order_amount__lte=total_amount
+    ).order_by("-discount_value").first()
+
+    discount_amount = Decimal("0.00")
+
+    if deal:
+        if deal.discount_type == "percentage":
+            discount_amount = (total_amount * deal.discount_value / Decimal("100")).quantize(Decimal("0.01"))
+        elif deal.discount_type == "fixed":
+            discount_amount = min(deal.discount_value, total_amount)
+
+    final_amount = (total_amount - discount_amount).quantize(Decimal("0.01"))
 
     with transaction.atomic():
         order = Order.objects.create(
             customer=request.user,
             restaurant=restaurant,
-            total_amount=total_amount,
+            original_amount=total_amount,
+            discount_amount=discount_amount,
+            applied_deal_title=deal.title if deal else None,
+            total_amount=final_amount,
             status="confirmed",
         )
 
@@ -621,7 +663,9 @@ def place_order(request):
                     f"Hello {request.user.first_name or request.user.username},\n\n"
                     f"Your order #{order.id} has been confirmed.\n"
                     f"Restaurant: {restaurant.name}\n"
-                    f"Total: ৳{order.total_amount}\n\n"
+                    f"Original Total: ৳{total_amount}\n"
+                    f"Discount: ৳{discount_amount}\n"
+                    f"Final Total: ৳{order.total_amount}\n\n"
                     f"Thank you for ordering with FoodOTG."
                 ),
                 from_email=None,
@@ -636,6 +680,10 @@ def place_order(request):
         {
             "message": "Order placed successfully.",
             "order_id": order.id,
+            "original_amount": total_amount,
+            "discount_amount": discount_amount,
+            "final_amount": final_amount,
+            "applied_deal": deal.title if deal else None,
             "notification_sent": notification_sent,
             "redirect_url": f"/order-confirmation/{order.id}/",
         },
@@ -721,6 +769,7 @@ def submit_review(request, order_id):
         },
         status=status.HTTP_201_CREATED,
     )
+
 # =========================
 # ADMIN HELPERS
 # =========================
@@ -822,6 +871,33 @@ def admin_reviews(request):
 
     return Response(data, status=status.HTTP_200_OK)
 
+    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def business_promotions(request):
+    deals = Deal.objects.filter(restaurant__owner=request.user).select_related("restaurant")
+    serializer = DealSerializer(deals, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_promotion(request):
+    restaurant_id = request.data.get("restaurant")
+
+    try:
+        restaurant = Restaurant.objects.get(id=restaurant_id, owner=request.user)
+    except Restaurant.DoesNotExist:
+        return Response({"error": "Restaurant not found or access denied."}, status=404)
+
+    serializer = DealSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(restaurant=restaurant)
+        return Response({"message": "Promotion added successfully."}, status=201)
+
+    return Response(serializer.errors, status=400)
+
+
 
 @api_view(["PUT"])
 @permission_classes([IsAuthenticated])
@@ -861,6 +937,7 @@ def report_review(request, review_id):
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
+
 def delete_review(request, review_id):
     if not is_admin_user(request.user):
         return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
@@ -876,3 +953,124 @@ def delete_review(request, review_id):
     update_restaurant_average_rating(restaurant)
 
     return Response({"message": "Review deleted successfully"}, status=status.HTTP_200_OK)
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_promotion(request, deal_id):
+    try:
+        deal = Deal.objects.get(id=deal_id, restaurant__owner=request.user)
+    except Deal.DoesNotExist:
+        return Response({"error": "Promotion not found or access denied."}, status=404)
+
+    deal.delete()
+    return Response({"message": "Promotion deleted successfully."}, status=200)
+def rider_dashboard_page(request):
+    return render(request, "rider_dashboard.html")
+
+
+def is_rider_user(user):
+    try:
+        return user.userprofile.role == "rider"
+    except UserProfile.DoesNotExist:
+        return False
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_riders(request):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=403)
+
+    riders = Rider.objects.select_related("user").all()
+
+    data = []
+    for rider in riders:
+        data.append({
+            "id": rider.id,
+            "name": rider.user.first_name or rider.user.username,
+            "email": rider.user.email or rider.user.username,
+            "phone": rider.phone,
+            "vehicle_type": rider.vehicle_type,
+            "is_available": rider.is_available,
+        })
+
+    return Response(data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_orders(request):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=403)
+
+    orders = Order.objects.select_related("customer", "restaurant", "rider", "rider__user").order_by("-created_at")
+
+    data = []
+    for order in orders:
+        data.append({
+            "id": order.id,
+            "customer": order.customer.email or order.customer.username,
+            "restaurant_name": order.restaurant.name,
+            "status": order.status,
+            "total_amount": order.total_amount,
+            "rider_id": order.rider.id if order.rider else None,
+            "rider_name": order.rider.user.username if order.rider else "Not Assigned",
+            "created_at": order.created_at,
+        })
+
+    return Response(data)
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def assign_rider_to_order(request, order_id):
+    if not is_admin_user(request.user):
+        return Response({"error": "Unauthorized"}, status=403)
+
+    rider_id = request.data.get("rider_id")
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+
+    try:
+        rider = Rider.objects.get(id=rider_id, is_available=True)
+    except Rider.DoesNotExist:
+        return Response({"error": "Rider not found or unavailable"}, status=404)
+
+    order.rider = rider
+    order.save(update_fields=["rider"])
+
+    rider.is_available = False
+    rider.save(update_fields=["is_available"])
+
+    return Response({"message": "Rider assigned successfully"})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def rider_orders(request):
+    if not is_rider_user(request.user):
+        return Response({"error": "Unauthorized"}, status=403)
+
+    try:
+        rider = request.user.rider_profile
+    except Rider.DoesNotExist:
+        return Response({"error": "Rider profile not found"}, status=404)
+
+    orders = Order.objects.filter(rider=rider).select_related("restaurant", "customer").order_by("-created_at")
+
+    data = []
+    for order in orders:
+        data.append({
+            "id": order.id,
+            "customer": order.customer.email or order.customer.username,
+            "restaurant_name": order.restaurant.name,
+            "restaurant_address": order.restaurant.address,
+            "status": order.status,
+            "total_amount": order.total_amount,
+            "created_at": order.created_at,
+        })
+
+    return Response(data)

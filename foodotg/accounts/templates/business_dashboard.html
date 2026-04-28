@@ -1,343 +1,768 @@
 {% load static %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>FoodOTG | Business Dashboard</title>
-    <link rel="stylesheet" href="{% static 'css/business_dashboard_styles.css' %}">
-</head>
-<body>
-
-<div class="container">
-    <div class="header">
+    <link
+      rel="stylesheet"
+      href="{% static 'css/business_dashboard_styles.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
         <div>
-            <h2>Business Dashboard</h2>
-            <p class="subtitle">Manage your restaurants, menu items, and customer reviews</p>
+          <h2>Business Dashboard</h2>
+          <p class="subtitle">
+            Manage your restaurants, menu items, and customer reviews
+          </p>
         </div>
 
         <div class="header-actions">
-            <button type="button" onclick="openRestaurantModal()">Add Restaurant</button>
-            <button type="button" class="logout-btn" onclick="logout()">Logout</button>
+          <button type="button" onclick="openRestaurantModal()">
+            Add Restaurant
+          </button>
+          <button type="button" class="logout-btn" onclick="logout()">
+            Logout
+          </button>
         </div>
-    </div>
+      </div>
 
-    <div class="stats-grid">
+      <div class="stats-grid">
         <div class="stat-card">
-            <h3 id="totalRestaurants">0</h3>
-            <p>Total Restaurants</p>
+          <h3 id="totalRestaurants">0</h3>
+          <p>Total Restaurants</p>
         </div>
 
         <div class="stat-card">
-            <h3 id="averageRating">0.0</h3>
-            <p>Average Rating</p>
+          <h3 id="averageRating">0.0</h3>
+          <p>Average Rating</p>
         </div>
 
         <div class="stat-card">
-            <h3 id="deliveryEnabled">0</h3>
-            <p>Delivery Enabled</p>
+          <h3 id="deliveryEnabled">0</h3>
+          <p>Delivery Enabled</p>
         </div>
-    </div>
+      </div>
 
-    <div class="section">
+      <div class="section">
         <h3>Your Restaurants</h3>
         <div id="restaurantList" class="grid"></div>
-    </div>
+      </div>
 
-    <div class="section reviews-section">
+      <div class="section reviews-section">
         <h3>Customer Reviews</h3>
         <div id="reviewList" class="reviews-grid"></div>
+      </div>
     </div>
-</div>
 
-<!-- =========================
+    <!-- =========================
      ADD RESTAURANT MODAL
 ========================= -->
-<div id="restaurantModal" class="modal">
-    <div class="modal-content">
+    <div id="restaurantModal" class="modal">
+      <div class="modal-content">
         <div class="modal-header">
-            <h3>Add New Restaurant</h3>
-            <span class="close" onclick="closeRestaurantModal()">&times;</span>
+          <h3>Add New Restaurant</h3>
+          <span class="close" onclick="closeRestaurantModal()">&times;</span>
         </div>
 
         <div id="restaurantMsg" class="error"></div>
 
         <form id="restaurantForm">
+          <div class="input-group">
+            <input
+              type="text"
+              name="name"
+              placeholder="Restaurant Name"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <textarea
+              name="description"
+              placeholder="Description"
+              required
+            ></textarea>
+          </div>
+
+          <div class="input-group">
+            <input type="text" name="address" placeholder="Address" required />
+          </div>
+
+          <div class="input-group">
+            <label class="map-label">Choose Restaurant Location</label>
+            <button type="button" class="secondary-btn small-btn" onclick="detectRestaurantCurrentLocation()">
+                Use My Current Location
+            </button>
+            <div
+              id="restaurantLocationMap"
+              class="restaurant-location-map"
+            ></div>
+            <p class="map-help-text">
+              Click on the map to select the restaurant location.
+            </p>
+          </div>
+
+          <div class="row">
             <div class="input-group">
-                <input type="text" name="name" placeholder="Restaurant Name" required>
+              <input
+                type="number"
+                step="0.0001"
+                name="latitude"
+                id="restaurantLatitude"
+                value="23.8103"
+                placeholder="Latitude"
+                readonly
+              />
             </div>
 
             <div class="input-group">
-                <textarea name="description" placeholder="Description" required></textarea>
+              <input
+                type="number"
+                step="0.0001"
+                name="longitude"
+                id="restaurantLongitude"
+                value="90.4125"
+                placeholder="Longitude"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="input-group">
+              <select name="category" required>
+                <option value="Bangladeshi">Bangladeshi</option>
+                <option value="Mughlai">Mughlai</option>
+                <option value="BBQ">BBQ</option>
+                <option value="Fusion">Fusion</option>
+                <option value="Bengali">Bengali</option>
+                <option value="Fast Food">Fast Food</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Thai">Thai</option>
+              </select>
             </div>
 
             <div class="input-group">
-                <input type="text" name="address" placeholder="Address" required>
+              <select name="price_range" required>
+                <option value="৳">৳</option>
+                <option value="৳৳">৳৳</option>
+                <option value="৳৳৳">৳৳৳</option>
+              </select>
             </div>
+          </div>
 
-            <div class="row">
-                <div class="input-group">
-                    <input type="number" step="0.0001" name="latitude" value="23.8103" placeholder="Latitude">
-                </div>
+          <div class="input-group">
+            <input type="url" name="image" placeholder="Image URL (optional)" />
+          </div>
 
-                <div class="input-group">
-                    <input type="number" step="0.0001" name="longitude" value="90.4125" placeholder="Longitude">
-                </div>
-            </div>
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" name="delivery_available" checked />
+              Delivery Available
+            </label>
+          </div>
 
-            <div class="row">
-                <div class="input-group">
-                    <select name="category" required>
-                        <option value="Bangladeshi">Bangladeshi</option>
-                        <option value="Mughlai">Mughlai</option>
-                        <option value="BBQ">BBQ</option>
-                        <option value="Fusion">Fusion</option>
-                        <option value="Bengali">Bengali</option>
-                        <option value="Fast Food">Fast Food</option>
-                        <option value="Chinese">Chinese</option>
-                        <option value="Thai">Thai</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <select name="price_range" required>
-                        <option value="৳">৳</option>
-                        <option value="৳৳">৳৳</option>
-                        <option value="৳৳৳">৳৳৳</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <input type="url" name="image" placeholder="Image URL (optional)">
-            </div>
-
-            <div class="checkbox-group">
-                <label>
-                    <input type="checkbox" name="delivery_available" checked>
-                    Delivery Available
-                </label>
-            </div>
-
-            <div class="button-row">
-                <button type="submit">Add Restaurant</button>
-                <button type="button" class="secondary-btn" onclick="closeRestaurantModal()">Cancel</button>
-            </div>
+          <div class="button-row">
+            <button type="submit">Add Restaurant</button>
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="closeRestaurantModal()"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
+      </div>
     </div>
-</div>
 
-<!-- =========================
+    <!-- =========================
+     PROMOTIONS SECTION
+========================= -->
+    <div class="section">
+      <h3>Manage Promotions</h3>
+      <button type="button" onclick="openPromotionModal()">
+        Add Promotion
+      </button>
+      <div id="promotionList" class="grid"></div>
+    </div>
+
+    <!-- =========================
      MENU MODAL
 ========================= -->
-<div id="menuModal" class="modal">
-    <div class="modal-content">
+    <div id="menuModal" class="modal">
+      <div class="modal-content">
         <div class="modal-header">
-            <h3 id="menuModalTitle">Manage Menu</h3>
-            <span class="close" onclick="closeMenuModal()">&times;</span>
+          <h3 id="menuModalTitle">Manage Menu</h3>
+          <span class="close" onclick="closeMenuModal()">&times;</span>
         </div>
 
         <div id="menuMsg" class="error"></div>
 
         <form id="menuForm">
-            <div class="input-group">
-                <input type="text" id="menu_name" placeholder="Item Name" required>
-            </div>
+          <div class="input-group">
+            <input
+              type="text"
+              id="menu_name"
+              placeholder="Item Name"
+              required
+            />
+          </div>
 
-            <div class="input-group">
-                <textarea id="menu_description" placeholder="Item Description"></textarea>
-            </div>
+          <div class="input-group">
+            <textarea
+              id="menu_description"
+              placeholder="Item Description"
+            ></textarea>
+          </div>
 
-            <div class="input-group">
-                <input type="number" id="menu_price" step="0.01" placeholder="Price" required>
-            </div>
+          <div class="input-group">
+            <input
+              type="number"
+              id="menu_price"
+              step="0.01"
+              placeholder="Price"
+              required
+            />
+          </div>
 
-            <div class="checkbox-group">
-                <label>
-                    <input type="checkbox" id="menu_available" checked>
-                    Available
-                </label>
-            </div>
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" id="menu_available" checked />
+              Available
+            </label>
+          </div>
 
-            <div class="button-row">
-                <button type="submit">Save Menu Item</button>
-                <button type="button" class="secondary-btn" onclick="closeMenuModal()">Cancel</button>
-            </div>
+          <div class="button-row">
+            <button type="submit">Save Menu Item</button>
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="closeMenuModal()"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
 
         <div class="section">
-            <h3>Menu Items</h3>
-            <div id="menuItemsList" class="grid"></div>
+          <h3>Menu Items</h3>
+          <div id="menuItemsList" class="grid"></div>
         </div>
+      </div>
     </div>
-</div>
 
-<script>
-/* =========================
+    <div id="promotionModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Promotion</h3>
+          <span class="close" onclick="closePromotionModal()">&times;</span>
+        </div>
+
+        <div id="promotionMsg" class="error"></div>
+
+        <form id="promotionForm">
+          <div class="input-group">
+            <select
+              name="restaurant"
+              id="promotionRestaurant"
+              required
+            ></select>
+          </div>
+
+          <div class="input-group">
+            <input
+              type="text"
+              name="title"
+              placeholder="Promotion Title"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <textarea
+              name="description"
+              placeholder="Promotion Description"
+              required
+            ></textarea>
+          </div>
+
+          <div class="row">
+            <div class="input-group">
+              <select name="discount_type" required>
+                <option value="percentage">Percentage Discount</option>
+                <option value="fixed">Fixed Amount Discount</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <input
+                type="number"
+                name="discount_value"
+                step="0.01"
+                min="0"
+                placeholder="Discount Value"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <input
+              type="number"
+              name="minimum_order_amount"
+              step="0.01"
+              min="0"
+              placeholder="Minimum Order Amount"
+              required
+            />
+          </div>
+
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" name="active_status" checked />
+              Active Promotion
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button type="submit">Save Promotion</button>
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="closePromotionModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      /* =========================
    AUTH HELPERS
 ========================= */
-function getAccessToken() {
-    return localStorage.getItem("token") || localStorage.getItem("access");
-}
+      function getAccessToken() {
+        return localStorage.getItem("token") || localStorage.getItem("access");
+      }
 
-function authHeaders(extra = {}) {
-    return {
-        ...extra,
-        "Authorization": "Bearer " + getAccessToken()
-    };
-}
+      function authHeaders(extra = {}) {
+        return {
+          ...extra,
+          Authorization: "Bearer " + getAccessToken(),
+        };
+      }
 
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
 
-function formatDateTime(value) {
-    try {
-        return new Date(value).toLocaleString();
-    } catch (error) {
-        return value || "";
-    }
-}
+      function formatDateTime(value) {
+        try {
+          return new Date(value).toLocaleString();
+        } catch (error) {
+          return value || "";
+        }
+      }
 
-function renderStars(rating) {
-    const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
-    let html = "";
-    for (let i = 1; i <= 5; i++) {
-        html += `<span class="review-star ${i <= safeRating ? "filled" : ""}">★</span>`;
-    }
-    return html;
-}
+      function renderStars(rating) {
+        const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+        let html = "";
+        for (let i = 1; i <= 5; i++) {
+          html += `<span class="review-star ${i <= safeRating ? "filled" : ""}">★</span>`;
+        }
+        return html;
+      }
 
-/* =========================
+      /* =========================
    AUTH CHECK
 ========================= */
-if (!getAccessToken()) {
-    window.location.href = "/business-login/";
-}
+      const token = getAccessToken();
+      const role = localStorage.getItem("role");
 
-if (data.role !== "business_owner" && data.role !== "admin") {
-    msg.innerText = "This account is not registered as a business owner or admin.";
-    return;
-}
+      if (!token) {
+        window.location.href = "/business-login/";
+      }
 
-localStorage.setItem("token", data.access);
-localStorage.setItem("refresh", data.refresh);
-localStorage.setItem("role", data.role);
+      if (role !== "business_owner") {
+        alert("Access denied. This page is for business owners only.");
+        window.location.href = "/login/";
+      }
 
-if (data.role === "admin") {
-    window.location.href = "/admin-dashboard/";
-} else {
-    window.location.href = "/business-dashboard/";
-}
-
-/* =========================
+      /* =========================
    GLOBAL STATE
 ========================= */
-const restaurantModal = document.getElementById("restaurantModal");
-const restaurantList = document.getElementById("restaurantList");
-const restaurantForm = document.getElementById("restaurantForm");
-const restaurantMsg = document.getElementById("restaurantMsg");
+      const restaurantModal = document.getElementById("restaurantModal");
+      const restaurantList = document.getElementById("restaurantList");
+      const restaurantForm = document.getElementById("restaurantForm");
+      const restaurantMsg = document.getElementById("restaurantMsg");
 
-const menuModal = document.getElementById("menuModal");
-const menuForm = document.getElementById("menuForm");
-const menuMsg = document.getElementById("menuMsg");
-const menuItemsList = document.getElementById("menuItemsList");
+      let restaurantLocationMap = null;
+      let restaurantLocationMarker = null;
+      const defaultRestaurantLat = 23.8103;
+      const defaultRestaurantLng = 90.4125;
 
-const reviewList = document.getElementById("reviewList");
+      const menuModal = document.getElementById("menuModal");
+      const menuForm = document.getElementById("menuForm");
+      const menuMsg = document.getElementById("menuMsg");
+      const menuItemsList = document.getElementById("menuItemsList");
 
-let currentRestaurantId = null;
-let editingMenuItemId = null;
+      const reviewList = document.getElementById("reviewList");
 
-/* =========================
+      let currentRestaurantId = null;
+      let editingMenuItemId = null;
+
+      const promotionModal = document.getElementById("promotionModal");
+      const promotionForm = document.getElementById("promotionForm");
+      const promotionMsg = document.getElementById("promotionMsg");
+      const promotionList = document.getElementById("promotionList");
+      const promotionRestaurant = document.getElementById(
+        "promotionRestaurant",
+      );
+
+      let businessRestaurants = [];
+      let editingPromotionId = null;
+
+      /* =========================
    RESTAURANT MODAL
 ========================= */
-function openRestaurantModal() {
-    restaurantModal.style.display = "flex";
-}
+      function openRestaurantModal() {
+        restaurantModal.style.display = "flex";
+        setTimeout(initRestaurantLocationMap, 200);
+      }
 
-function closeRestaurantModal() {
-    restaurantModal.style.display = "none";
-    restaurantForm.reset();
-    restaurantMsg.innerText = "";
-}
+      function closeRestaurantModal() {
+        restaurantModal.style.display = "none";
+        restaurantForm.reset();
+        restaurantMsg.innerText = "";
+      }
+      function initRestaurantLocationMap() {
+        const latInput = document.getElementById("restaurantLatitude");
+        const lngInput = document.getElementById("restaurantLongitude");
 
-/* =========================
-   LOAD RESTAURANTS
-========================= */
-async function loadRestaurants() {
-    try {
-        const response = await fetch("/api/business-dashboard/", {
-            headers: authHeaders()
-        });
+        const startLat = parseFloat(latInput.value) || defaultRestaurantLat;
+        const startLng = parseFloat(lngInput.value) || defaultRestaurantLng;
 
-        if (!response.ok) {
-            throw new Error("Failed to load restaurants");
+        if (!restaurantLocationMap) {
+          restaurantLocationMap = L.map("restaurantLocationMap").setView(
+            [startLat, startLng],
+            13,
+          );
+
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors",
+            referrerPolicy: "strict-origin-when-cross-origin",
+          }).addTo(restaurantLocationMap);
+
+          restaurantLocationMarker = L.marker([startLat, startLng], {
+            draggable: true,
+          }).addTo(restaurantLocationMap);
+
+          restaurantLocationMarker.on("dragend", function () {
+            const position = restaurantLocationMarker.getLatLng();
+            updateRestaurantLocationInputs(position.lat, position.lng);
+          });
+
+          restaurantLocationMap.on("click", function (event) {
+            setRestaurantLocation(event.latlng.lat, event.latlng.lng);
+          });
+        } else {
+          restaurantLocationMap.setView([startLat, startLng], 13);
+          restaurantLocationMarker.setLatLng([startLat, startLng]);
         }
 
-        const restaurants = await response.json();
-        renderRestaurants(restaurants);
-        updateStats(restaurants);
-    } catch (error) {
-        restaurantList.innerHTML = `
+        setTimeout(function () {
+          restaurantLocationMap.invalidateSize();
+        }, 200);
+      }
+
+      function setRestaurantLocation(lat, lng) {
+        updateRestaurantLocationInputs(lat, lng);
+
+        if (restaurantLocationMarker) {
+          restaurantLocationMarker.setLatLng([lat, lng]);
+        }
+
+        if (restaurantLocationMap) {
+          restaurantLocationMap.setView([lat, lng], 15);
+        }
+      }
+
+      function updateRestaurantLocationInputs(lat, lng) {
+        document.getElementById("restaurantLatitude").value =
+          Number(lat).toFixed(4);
+        document.getElementById("restaurantLongitude").value =
+          Number(lng).toFixed(4);
+      }
+
+      function detectRestaurantCurrentLocation() {
+        if (!navigator.geolocation) {
+          alert("Location detection is not supported by this browser.");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            setRestaurantLocation(
+              position.coords.latitude,
+              position.coords.longitude,
+            );
+          },
+          function () {
+            alert(
+              "Unable to detect location. Please select it manually on the map.",
+            );
+          },
+        );
+      }
+      /* =========================
+   LOAD RESTAURANTS
+========================= */
+      async function loadRestaurants() {
+        try {
+          const response = await fetch("/api/business-dashboard/", {
+            headers: authHeaders(),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to load restaurants");
+          }
+
+          const restaurants = await response.json();
+          businessRestaurants = restaurants;
+          renderRestaurants(restaurants);
+          updateStats(restaurants);
+        } catch (error) {
+          restaurantList.innerHTML = `
             <div class="empty-state">
                 <h4>Unable to load restaurants</h4>
                 <p>Please try again later.</p>
             </div>
         `;
-    }
-}
+        }
+      }
 
-/* =========================
-   LOAD REVIEWS
-========================= */
-async function loadReviews() {
-    try {
-        const response = await fetch("/api/business-reviews/", {
-            headers: authHeaders()
+
+      function openPromotionModal() {
+        promotionModal.style.display = "flex";
+        promotionForm.reset();
+        promotionMsg.innerText = "";
+        editingPromotionId = null;
+        populatePromotionRestaurants();
+      }
+
+      function closePromotionModal() {
+        promotionModal.style.display = "none";
+        promotionForm.reset();
+        promotionMsg.innerText = "";
+        editingPromotionId = null;
+      }
+
+      function populatePromotionRestaurants() {
+        promotionRestaurant.innerHTML = "";
+
+        businessRestaurants.forEach((restaurant) => {
+          promotionRestaurant.innerHTML += `
+            <option value="${restaurant.id}">${escapeHtml(restaurant.name)}</option>
+        `;
         });
+      }
 
-        if (!response.ok) {
-            throw new Error("Failed to load reviews");
+      /* =========================
+   LOAD PROMOTIONS
+========================= */
+      async function loadPromotions() {
+        try {
+          const response = await fetch("/api/business-promotions/", {
+            headers: authHeaders(),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to load promotions");
+          }
+
+          const promotions = await response.json();
+          renderPromotions(promotions);
+        } catch (error) {
+          promotionList.innerHTML = `
+            <div class="empty-state">
+                <h4>Unable to load promotions</h4>
+                <p>Please try again later.</p>
+            </div>
+        `;
+        }
+      }
+
+      function renderPromotions(promotions) {
+        promotionList.innerHTML = "";
+
+        if (!promotions.length) {
+          promotionList.innerHTML = `
+            <div class="empty-state">
+                <h4>No Promotions Yet</h4>
+                <p>Create promotions to show them as active customer deals.</p>
+            </div>
+        `;
+          return;
         }
 
-        const reviews = await response.json();
-        renderReviews(reviews);
-    } catch (error) {
-        reviewList.innerHTML = `
+        promotions.forEach((promotion) => {
+          const safeTitle = String(promotion.title).replace(/'/g, "\\'");
+          const safeDescription = String(promotion.description || "").replace(
+            /'/g,
+            "\\'",
+          );
+
+          promotionList.innerHTML += `
+            <div class="card">
+                <div class="card-body">
+                    <h4>${escapeHtml(promotion.title)}</h4>
+                    <p>${escapeHtml(promotion.description)}</p>
+                    <p><strong>Restaurant:</strong> ${escapeHtml(promotion.restaurant_name || "")}</p>
+                    <p><strong>Status:</strong> ${promotion.active_status ? "Active" : "Inactive"}</p>
+
+                    <div class="card-actions">
+                        <button type="button" onclick="editPromotion(${promotion.id}, ${promotion.restaurant}, '${safeTitle}', '${safeDescription}', ${promotion.active_status})">Edit</button>
+                        <button type="button" class="secondary-btn" onclick="deletePromotion(${promotion.id})">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        });
+      }
+
+      function editPromotion(
+        id,
+        restaurantId,
+        title,
+        description,
+        activeStatus,
+      ) {
+        editingPromotionId = id;
+        populatePromotionRestaurants();
+
+        document.getElementById("promotionRestaurant").value = restaurantId;
+        promotionForm.elements["title"].value = title;
+        promotionForm.elements["description"].value = description;
+        promotionForm.elements["active_status"].checked = activeStatus;
+
+        promotionModal.style.display = "flex";
+      }
+
+      async function deletePromotion(promotionId) {
+        if (!confirm("Are you sure you want to delete this promotion?")) return;
+
+        const response = await fetch(`/api/promotions/${promotionId}/delete/`, {
+          method: "DELETE",
+          headers: authHeaders(),
+        });
+
+        if (response.ok) {
+          loadPromotions();
+        } else {
+          alert("Failed to delete promotion.");
+        }
+      }
+
+      promotionForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(promotionForm);
+
+        const payload = {
+          restaurant: formData.get("restaurant"),
+          title: formData.get("title"),
+          description: formData.get("description"),
+          active_status: formData.get("active_status") === "on",
+        };
+
+        let url = "/api/promotions/add/";
+        let method = "POST";
+
+        if (editingPromotionId) {
+          url = `/api/promotions/${editingPromotionId}/update/`;
+          method = "PUT";
+        }
+
+        const response = await fetch(url, {
+          method,
+          headers: authHeaders({
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          closePromotionModal();
+          loadPromotions();
+        } else {
+          promotionMsg.innerText = "Failed to save promotion.";
+        }
+      });
+
+      /* =========================
+   LOAD REVIEWS
+========================= */
+      async function loadReviews() {
+        try {
+          const response = await fetch("/api/business-reviews/", {
+            headers: authHeaders(),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to load reviews");
+          }
+
+          const reviews = await response.json();
+          renderReviews(reviews);
+        } catch (error) {
+          reviewList.innerHTML = `
             <div class="empty-state">
                 <h4>Unable to load reviews</h4>
                 <p>Please try again later.</p>
             </div>
         `;
-    }
-}
+        }
+      }
 
-/* =========================
+      /* =========================
    RENDER RESTAURANTS
 ========================= */
-function renderRestaurants(restaurants) {
-    restaurantList.innerHTML = "";
+      function renderRestaurants(restaurants) {
+        restaurantList.innerHTML = "";
 
-    if (!restaurants.length) {
-        restaurantList.innerHTML = `
+        if (!restaurants.length) {
+          restaurantList.innerHTML = `
             <div class="empty-state">
                 <h4>No Restaurants Yet</h4>
                 <p>Start by adding your first restaurant.</p>
             </div>
         `;
-        return;
-    }
+          return;
+        }
 
-    restaurants.forEach((r) => {
-        const safeName = String(r.name).replace(/'/g, "\\'");
-        restaurantList.innerHTML += `
+        restaurants.forEach((r) => {
+          const safeName = String(r.name).replace(/'/g, "\\'");
+          restaurantList.innerHTML += `
             <div class="card">
-                <img src="${r.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800'}" alt="${escapeHtml(r.name)}">
+                <img src="${r.image || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800"}" alt="${escapeHtml(r.name)}">
                 <div class="card-body">
                     <h4>${escapeHtml(r.name)}</h4>
                     <p>${escapeHtml(r.description || "")}</p>
@@ -353,27 +778,27 @@ function renderRestaurants(restaurants) {
                 </div>
             </div>
         `;
-    });
-}
+        });
+      }
 
-/* =========================
+      /* =========================
    RENDER REVIEWS
 ========================= */
-function renderReviews(reviews) {
-    reviewList.innerHTML = "";
+      function renderReviews(reviews) {
+        reviewList.innerHTML = "";
 
-    if (!reviews.length) {
-        reviewList.innerHTML = `
+        if (!reviews.length) {
+          reviewList.innerHTML = `
             <div class="empty-state">
                 <h4>No Reviews Yet</h4>
                 <p>Customer reviews will appear here once orders are reviewed.</p>
             </div>
         `;
-        return;
-    }
+          return;
+        }
 
-    reviews.forEach((review) => {
-        reviewList.innerHTML += `
+        reviews.forEach((review) => {
+          reviewList.innerHTML += `
             <div class="review-card">
                 <div class="review-card-top">
                     <div>
@@ -392,123 +817,140 @@ function renderReviews(reviews) {
                 <p class="review-date">Submitted: ${formatDateTime(review.created_at)}</p>
             </div>
         `;
-    });
-}
+        });
+      }
 
-/* =========================
+      /* =========================
    UPDATE STATS
 ========================= */
-function updateStats(restaurants) {
-    document.getElementById("totalRestaurants").innerText = restaurants.length;
+      function updateStats(restaurants) {
+        document.getElementById("totalRestaurants").innerText =
+          restaurants.length;
 
-    const avg = restaurants.length
-        ? (restaurants.reduce((sum, r) => sum + parseFloat(r.average_rating || 0), 0) / restaurants.length).toFixed(1)
-        : "0.0";
+        const avg = restaurants.length
+          ? (
+              restaurants.reduce(
+                (sum, r) => sum + parseFloat(r.average_rating || 0),
+                0,
+              ) / restaurants.length
+            ).toFixed(1)
+          : "0.0";
 
-    const deliveryCount = restaurants.filter((r) => r.delivery_available).length;
+        const deliveryCount = restaurants.filter(
+          (r) => r.delivery_available,
+        ).length;
 
-    document.getElementById("averageRating").innerText = avg;
-    document.getElementById("deliveryEnabled").innerText = deliveryCount;
-}
+        document.getElementById("averageRating").innerText = avg;
+        document.getElementById("deliveryEnabled").innerText = deliveryCount;
+      }
 
-/* =========================
+      /* =========================
    ADD RESTAURANT
 ========================= */
-restaurantForm.addEventListener("submit", async function (e) {
-    e.preventDefault();
-    restaurantMsg.innerText = "";
+      restaurantForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        restaurantMsg.innerText = "";
 
-    const formData = new FormData(restaurantForm);
+        const formData = new FormData(restaurantForm);
 
-    const payload = {
-        name: formData.get("name"),
-        description: formData.get("description"),
-        address: formData.get("address"),
-        latitude: parseFloat(formData.get("latitude")),
-        longitude: parseFloat(formData.get("longitude")),
-        category: formData.get("category"),
-        price_range: formData.get("price_range"),
-        delivery_available: formData.get("delivery_available") === "on",
-        image: formData.get("image")
-    };
+        const payload = {
+          name: formData.get("name"),
+          description: formData.get("description"),
+          address: formData.get("address"),
+          latitude: parseFloat(formData.get("latitude")),
+          longitude: parseFloat(formData.get("longitude")),
+          category: formData.get("category"),
+          price_range: formData.get("price_range"),
+          delivery_available: formData.get("delivery_available") === "on",
+          image: formData.get("image"),
+        };
 
-    try {
-        const response = await fetch("/api/add-restaurant/", {
+        try {
+          const response = await fetch("/api/add-restaurant/", {
             method: "POST",
             headers: authHeaders({
-                "Content-Type": "application/json"
+              "Content-Type": "application/json",
             }),
-            body: JSON.stringify(payload)
-        });
+            body: JSON.stringify(payload),
+          });
 
-        const data = await response.json();
+          const data = await response.json();
 
-        if (response.status === 201) {
+          if (response.status === 201) {
             closeRestaurantModal();
             loadRestaurants();
-        } else {
+          } else {
             const firstError = Object.values(data)[0];
-            restaurantMsg.innerText = Array.isArray(firstError) ? firstError[0] : "Failed to add restaurant.";
+            restaurantMsg.innerText = Array.isArray(firstError)
+              ? firstError[0]
+              : "Failed to add restaurant.";
+          }
+        } catch (error) {
+          restaurantMsg.innerText = "Server communication error.";
         }
-    } catch (error) {
-        restaurantMsg.innerText = "Server communication error.";
-    }
-});
+      });
 
-/* =========================
+      /* =========================
    MENU MODAL
 ========================= */
-function openMenuModal(restaurantId, restaurantName) {
-    currentRestaurantId = restaurantId;
-    editingMenuItemId = null;
+      function openMenuModal(restaurantId, restaurantName) {
+        currentRestaurantId = restaurantId;
+        editingMenuItemId = null;
 
-    document.getElementById("menuModalTitle").innerText = `Manage Menu - ${restaurantName}`;
-    menuModal.style.display = "flex";
-    menuForm.reset();
-    menuMsg.innerText = "";
+        document.getElementById("menuModalTitle").innerText =
+          `Manage Menu - ${restaurantName}`;
+        menuModal.style.display = "flex";
+        menuForm.reset();
+        menuMsg.innerText = "";
 
-    loadMenuItems();
-}
+        loadMenuItems();
+      }
 
-function closeMenuModal() {
-    menuModal.style.display = "none";
-    menuForm.reset();
-    menuMsg.innerText = "";
-    currentRestaurantId = null;
-    editingMenuItemId = null;
-}
+      function closeMenuModal() {
+        menuModal.style.display = "none";
+        menuForm.reset();
+        menuMsg.innerText = "";
+        currentRestaurantId = null;
+        editingMenuItemId = null;
+      }
 
-/* =========================
+      /* =========================
    LOAD MENU ITEMS
 ========================= */
-async function loadMenuItems() {
-    if (!currentRestaurantId) return;
+      async function loadMenuItems() {
+        if (!currentRestaurantId) return;
 
-    menuItemsList.innerHTML = "";
+        menuItemsList.innerHTML = "";
 
-    try {
-        const response = await fetch(`/api/restaurants/${currentRestaurantId}/menu/`, {
-            headers: authHeaders()
-        });
+        try {
+          const response = await fetch(
+            `/api/restaurants/${currentRestaurantId}/menu/`,
+            {
+              headers: authHeaders(),
+            },
+          );
 
-        if (!response.ok) {
+          if (!response.ok) {
             throw new Error("Failed to load menu items");
-        }
+          }
 
-        const items = await response.json();
+          const items = await response.json();
 
-        if (!items.length) {
+          if (!items.length) {
             menuItemsList.innerHTML = `
                 <div class="empty-state">
                     <p>No menu items yet.</p>
                 </div>
             `;
             return;
-        }
+          }
 
-        items.forEach((item) => {
+          items.forEach((item) => {
             const escapedName = String(item.name).replace(/'/g, "\\'");
-            const escapedDescription = String(item.description || "").replace(/'/g, "\\'");
+            const escapedDescription = String(item.description || "").replace(
+              /'/g,
+              "\\'",
+            );
             menuItemsList.innerHTML += `
                 <div class="card">
                     <div class="card-body">
@@ -523,120 +965,124 @@ async function loadMenuItems() {
                     </div>
                 </div>
             `;
-        });
-    } catch (error) {
-        menuItemsList.innerHTML = `
+          });
+        } catch (error) {
+          menuItemsList.innerHTML = `
             <div class="empty-state">
                 <p>Failed to load menu items.</p>
             </div>
         `;
-    }
-}
+        }
+      }
 
-/* =========================
+      /* =========================
    EDIT MENU ITEM
 ========================= */
-function editMenuItem(id, name, description, price, available) {
-    editingMenuItemId = id;
-    document.getElementById("menu_name").value = name;
-    document.getElementById("menu_description").value = description;
-    document.getElementById("menu_price").value = price;
-    document.getElementById("menu_available").checked = available;
-}
+      function editMenuItem(id, name, description, price, available) {
+        editingMenuItemId = id;
+        document.getElementById("menu_name").value = name;
+        document.getElementById("menu_description").value = description;
+        document.getElementById("menu_price").value = price;
+        document.getElementById("menu_available").checked = available;
+      }
 
-/* =========================
+      /* =========================
    DELETE MENU ITEM
 ========================= */
-async function removeMenuItem(itemId) {
-    const confirmDelete = confirm("Are you sure you want to delete this menu item?");
-    if (!confirmDelete) return;
+      async function removeMenuItem(itemId) {
+        const confirmDelete = confirm(
+          "Are you sure you want to delete this menu item?",
+        );
+        if (!confirmDelete) return;
 
-    try {
-        const response = await fetch(`/api/menu-items/${itemId}/delete/`, {
+        try {
+          const response = await fetch(`/api/menu-items/${itemId}/delete/`, {
             method: "DELETE",
-            headers: authHeaders()
-        });
+            headers: authHeaders(),
+          });
 
-        if (response.ok) {
+          if (response.ok) {
             loadMenuItems();
-        } else {
+          } else {
             alert("Failed to delete menu item.");
+          }
+        } catch (error) {
+          alert("Server communication error.");
         }
-    } catch (error) {
-        alert("Server communication error.");
-    }
-}
+      }
 
-/* =========================
+      /* =========================
    SAVE / UPDATE MENU ITEM
 ========================= */
-menuForm.addEventListener("submit", async function (e) {
-    e.preventDefault();
-    menuMsg.innerText = "";
+      menuForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        menuMsg.innerText = "";
 
-    const payload = {
-        name: document.getElementById("menu_name").value,
-        description: document.getElementById("menu_description").value,
-        price: document.getElementById("menu_price").value,
-        available: document.getElementById("menu_available").checked
-    };
+        const payload = {
+          name: document.getElementById("menu_name").value,
+          description: document.getElementById("menu_description").value,
+          price: document.getElementById("menu_price").value,
+          available: document.getElementById("menu_available").checked,
+        };
 
-    try {
-        let url = `/api/restaurants/${currentRestaurantId}/menu/add/`;
-        let method = "POST";
+        try {
+          let url = `/api/restaurants/${currentRestaurantId}/menu/add/`;
+          let method = "POST";
 
-        if (editingMenuItemId) {
+          if (editingMenuItemId) {
             url = `/api/menu-items/${editingMenuItemId}/update/`;
             method = "PUT";
-        }
+          }
 
-        const response = await fetch(url, {
+          const response = await fetch(url, {
             method: method,
             headers: authHeaders({
-                "Content-Type": "application/json"
+              "Content-Type": "application/json",
             }),
-            body: JSON.stringify(payload)
-        });
+            body: JSON.stringify(payload),
+          });
 
-        const data = await response.json();
+          const data = await response.json();
 
-        if (response.ok) {
+          if (response.ok) {
             menuForm.reset();
             editingMenuItemId = null;
             loadMenuItems();
-        } else {
+          } else {
             const firstError = Object.values(data)[0];
-            menuMsg.innerText = Array.isArray(firstError) ? firstError[0] : "Failed to save menu item.";
+            menuMsg.innerText = Array.isArray(firstError)
+              ? firstError[0]
+              : "Failed to save menu item.";
+          }
+        } catch (error) {
+          menuMsg.innerText = "Server communication error.";
         }
-    } catch (error) {
-        menuMsg.innerText = "Server communication error.";
-    }
-});
+      });
 
-/* =========================
+      /* =========================
    LOGOUT
 ========================= */
-async function logout() {
-    try {
-        await fetch("/api/logout/", {
+      async function logout() {
+        try {
+          await fetch("/api/logout/", {
             method: "POST",
-            headers: authHeaders()
-        });
-    } catch (error) {}
+            headers: authHeaders(),
+          });
+        } catch (error) {}
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    localStorage.removeItem("role");
-    window.location.href = "/login/";
-}
+        localStorage.removeItem("token");
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        localStorage.removeItem("role");
+        window.location.href = "/login/";
+      }
 
-/* =========================
+      /* =========================
    INIT
 ========================= */
-loadRestaurants();
-loadReviews();
-</script>
-
-</body>
+      loadRestaurants();
+      loadReviews();
+      loadPromotions();
+    </script>
+  </body>
 </html>

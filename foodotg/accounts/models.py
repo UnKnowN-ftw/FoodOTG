@@ -11,6 +11,7 @@ class UserProfile(models.Model):
     ('customer', 'Customer'),
     ('business_owner', 'Business Owner'),
     ('admin', 'Admin'),
+    ('rider', 'Rider'),
 )
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -39,10 +40,23 @@ class Restaurant(models.Model):
 
 
 class Deal(models.Model):
+    DISCOUNT_TYPE_CHOICES = (
+        ("percentage", "Percentage"),
+        ("fixed", "Fixed Amount"),
+    )
+
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField()
     active_status = models.BooleanField(default=True)
+
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_TYPE_CHOICES,
+        default="percentage"
+    )
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    minimum_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):
         return self.title
@@ -117,6 +131,9 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(default=now, editable=False)
+    original_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    applied_deal_title = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"Order #{self.id} - {self.customer.username} - {self.restaurant.name}"
@@ -162,3 +179,20 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.restaurant.name} - {self.rating}/5 by {self.user.username}"
+    
+class Rider(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="rider_profile")
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    vehicle_type = models.CharField(max_length=50, blank=True, null=True)
+    is_available = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.user.username} - Rider"
+
+rider = models.ForeignKey(
+    Rider,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="assigned_orders"
+)
