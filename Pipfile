@@ -7,6 +7,7 @@ name = "pypi"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
 django = "*"
+selenium = "*"
 
 [dev-packages]
 
