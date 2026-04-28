@@ -997,6 +997,14 @@ def admin_riders(request):
     return Response(data)
 
 
+def rider_register_page(request):
+    return render(request, "rider_register.html")
+
+
+def rider_login_page(request):
+    return render(request, "rider_login.html")
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def admin_orders(request):

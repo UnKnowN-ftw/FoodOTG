@@ -1,0 +1,67 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FoodOTG | Rider Login</title>
+    <link rel="stylesheet" href="{% static 'css/rider_login_styles.css' %}" />
+  </head>
+  <body>
+    <div class="login-container">
+      <h2>Rider Login</h2>
+      <p id="message" class="error"></p>
+
+      <form id="riderLoginForm">
+        <input
+          type="text"
+          id="username"
+          placeholder="Username or Email"
+          required
+        />
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit">Login as Rider</button>
+      </form>
+      <p class="auth-link">
+        Don't have an account?
+        <a href="/rider-register/">Sign Up</a>
+      </p>
+    </div>
+
+    <script>
+      document
+        .getElementById("riderLoginForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const message = document.getElementById("message");
+
+          const response = await fetch("/api/login/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username: document.getElementById("username").value,
+              password: document.getElementById("password").value,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.role === "rider") {
+            localStorage.setItem("access", data.access);
+            localStorage.setItem("token", data.access);
+            localStorage.setItem("refresh", data.refresh);
+            localStorage.setItem("role", data.role);
+
+            window.location.href = "/rider-dashboard/";
+          } else if (response.ok) {
+            message.innerText = "Access denied. This account is not a rider.";
+            localStorage.clear();
+          } else {
+            message.innerText = data.error || "Invalid username or password.";
+          }
+        });
+    </script>
+  </body>
+</html>

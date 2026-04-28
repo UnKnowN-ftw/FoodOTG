@@ -63,7 +63,9 @@ urlpatterns = [
     path("order-confirmation/<int:order_id>/", views.order_confirmation_page),
 	
     path("api/reviews/<int:review_id>/report/", views.report_review),
-	
+    
+    path("rider-register/", views.rider_register_page),
+	path("rider-login/", views.rider_login_page),
     path("rider-dashboard/", views.rider_dashboard_page, name="rider_dashboard"),
 
     path("api/admin/riders/", views.admin_riders),

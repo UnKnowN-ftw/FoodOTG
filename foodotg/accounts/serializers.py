@@ -23,7 +23,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     choices=[
         ("customer", "Customer"),
         ("business_owner", "Business Owner"),
-        ("admin", "Admin"),]
+        ("admin", "Admin"),
+        ("rider", "Rider"),]
     )
 
     class Meta:
