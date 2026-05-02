@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOTG | Admin Login</title>
+    <link rel="stylesheet" href="{% static 'css/business_login_styles.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <h2>Admin Login</h2>
+
+    <div id="msg" class="error"></div>
+
+    <div class="input-group">
+        <input type="text" id="username" placeholder="Admin Email">
+    </div>
+
+    <div class="input-group">
+        <input type="password" id="password" placeholder="Password">
+    </div>
+
+    <button onclick="loginAdmin()">Login</button>
+</div>
+
+<script>
+async function loginAdmin() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const msg = document.getElementById("msg");
+
+    msg.innerText = "";
+
+    if (!username || !password) {
+        msg.innerText = "All fields must be filled.";
+        return;
+    }
+
+    const response = await fetch("/api/login/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+
+    if (!data.access) {
+        msg.innerText = data.error || "Login failed.";
+        return;
+    }
+
+    if (data.role !== "admin") {
+        msg.innerText = "This account is not an admin.";
+        return;
+    }
+
+    localStorage.setItem("token", data.access);
+    localStorage.setItem("role", data.role);
+
+    window.location.href = "/admin-dashboard/";
+}
+</script>
+
+</body>
+</html>

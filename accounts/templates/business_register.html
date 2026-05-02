@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOTG | Business Registration</title>
+
+    <link rel="stylesheet" href="{% static 'css/business_register_styles.css' %}">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- SUCCESS OVERLAY -->
+    <div id="success-layer">
+        <div class="check-circle">✓</div>
+        <h2>Success</h2>
+        <p>Business Registered Successfully</p>
+    </div>
+
+    <h2>Register as Business Owner</h2>
+
+    <div id="msg" class="error"></div>
+
+    <!-- OWNER INFO -->
+    <div class="input-group">
+        <input type="text" id="name" placeholder="Owner Name">
+    </div>
+
+    <div class="input-group">
+        <input type="email" id="email" placeholder="Email Address">
+    </div>
+
+    <div class="input-group">
+        <input type="password" id="pass" placeholder="Password">
+    </div>
+
+    <div class="input-group">
+        <input type="password" id="confirm_pass" placeholder="Confirm Password">
+    </div>
+
+    <!-- BUSINESS INFO -->
+    <div class="input-group">
+        <input type="text" id="business_name" placeholder="Business Name">
+    </div>
+
+    <div class="input-group">
+        <textarea id="description" placeholder="Business Description"></textarea>
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="address" placeholder="Business Address">
+    </div>
+
+    <div class="input-group">
+        <select id="category">
+            <option value="Bangladeshi">Bangladeshi</option>
+            <option value="Mughlai">Mughlai</option>
+            <option value="BBQ">BBQ</option>
+            <option value="Fusion">Fusion</option>
+            <option value="Fast Food">Fast Food</option>
+            <option value="Chinese">Chinese</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <select id="price_range">
+            <option value="৳">৳ - Budget</option>
+            <option value="৳৳">৳৳ - Moderate</option>
+            <option value="৳৳৳">৳৳৳ - Premium</option>
+        </select>
+    </div>
+
+    <button onclick="registerBusiness()">Register Business</button>
+
+    <div class="footer-text">
+        Already registered? <a href="/login/">Login</a>
+    </div>
+</div>
+
+<script>
+async function registerBusiness() {
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("pass").value;
+    const confirmPass = document.getElementById("confirm_pass").value;
+
+    const business_name = document.getElementById("business_name").value;
+    const description = document.getElementById("description").value;
+    const address = document.getElementById("address").value;
+    const category = document.getElementById("category").value;
+    const price_range = document.getElementById("price_range").value;
+
+    const msg = document.getElementById("msg");
+
+    msg.innerText = "";
+
+    if (!name || !email || !pass || !confirmPass ||
+        !business_name || !description || !address) {
+        msg.innerText = "All fields must be filled.";
+        return;
+    }
+
+    if (pass !== confirmPass) {
+        msg.innerText = "Passwords do not match.";
+        return;
+    }
+
+    const btn = document.querySelector("button");
+    btn.innerText = "REGISTERING...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch("/api/register/", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                name,
+                email,
+                password: pass,
+                role: "business_owner"
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.status === 201) {
+            document.getElementById("success-layer").style.display = "flex";
+            setTimeout(() => {
+                window.location.href = "/business-login/";
+            }, 2000);
+        } else {
+            msg.innerText = Object.values(data)[0];
+            btn.innerText = "Register Business";
+            btn.disabled = false;
+        }
+
+    } catch (e) {
+        msg.innerText = "Server error.";
+        btn.innerText = "Register Business";
+        btn.disabled = false;
+    }
+}
+</script>
+
+</body>
+</html>

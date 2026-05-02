@@ -1,0 +1,174 @@
+/* =========================
+   RESET & BASE
+========================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    height: 100vh;
+    background: linear-gradient(135deg, #ff5a5f, #ff8a5c);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* =========================
+   LOGIN CARD
+========================= */
+.container {
+    width: 420px;
+    max-width: 90%;
+    background: #ffffff;
+    padding: 40px 35px;
+    border-radius: 18px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+/* =========================
+   TITLE
+========================= */
+h2 {
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.subtext {
+    text-align: center;
+    margin-bottom: 22px;
+    font-size: 14px;
+    color: #777;
+}
+
+/* =========================
+   INPUT FIELDS
+========================= */
+.input-group {
+    margin-bottom: 18px;
+}
+
+input {
+    width: 100%;
+    padding: 14px 14px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.25s ease;
+}
+
+input:focus {
+    border-color: #ff5a5f;
+    outline: none;
+    box-shadow: 0 0 6px rgba(255, 90, 95, 0.3);
+}
+
+input::placeholder {
+    color: #aaa;
+}
+
+/* =========================
+   BUTTON
+========================= */
+button {
+    width: 100%;
+    padding: 14px;
+    background: #ff5a5f;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: #e14b4f;
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.secondary-btn {
+    background: #444;
+}
+
+.secondary-btn:hover {
+    background: #222;
+}
+
+/* =========================
+   FOOTER TEXT
+========================= */
+.footer-text {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 13px;
+    color: #777;
+}
+
+.footer-text a {
+    color: #ff5a5f;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer-text a:hover {
+    text-decoration: underline;
+}
+
+/* =========================
+   ERROR MESSAGE
+========================= */
+.error {
+    color: red;
+    font-size: 13px;
+    margin-bottom: 10px;
+    text-align: center;
+    min-height: 18px;
+}
+
+/* =========================
+   ANIMATION
+========================= */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(25px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+@media (max-width: 480px) {
+    .container {
+        padding: 30px 20px;
+        border-radius: 14px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+
+    input {
+        padding: 12px;
+    }
+
+    button {
+        padding: 12px;
+    }
+}
