@@ -83,6 +83,7 @@ urlpatterns = [
     path("forgot-password/", views.forgot_password_page),
     path("reset-password/<str:token>/", views.reset_password_page),
 	path("forgot-password/", views.forgot_password_page),
+	path("api/orders/<int:order_id>/invoice/", views.download_invoice),
     
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

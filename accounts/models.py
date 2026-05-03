@@ -123,12 +123,15 @@ class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
-        ('completed', 'Completed'),
+        ('preparing', 'Preparing'),
+        ('on_the_way', 'On The Way'),
+        ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
     )
 
     customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='orders')
+
     rider = models.ForeignKey(
         'Rider',
         on_delete=models.SET_NULL,
@@ -137,16 +140,21 @@ class Order(models.Model):
         related_name="assigned_orders"
     )
 
+    customer_name = models.CharField(max_length=150, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    delivery_address = models.TextField(blank=True, null=True)
+    payment_method = models.CharField(max_length=50, default="Cash on Delivery")
+    delivery_charge = models.DecimalField(max_digits=10, decimal_places=2, default=60.00)
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    created_at = models.DateTimeField(default=now, editable=False)
     original_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     applied_deal_title = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(default=now, editable=False)
 
     def __str__(self):
         return f"Order #{self.id} - {self.customer.username} - {self.restaurant.name}"
-
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')

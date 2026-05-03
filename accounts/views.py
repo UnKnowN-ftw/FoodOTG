@@ -18,6 +18,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Rider
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import parser_classes
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
 
 from .models import (
     Cart,
@@ -544,27 +546,20 @@ def checkout_summary(request):
     cart_items = list(cart.items.select_related("menu_item__restaurant"))
 
     if not cart_items:
-        return Response(
-            {"error": "Your cart is empty."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "Your cart is empty."}, status=status.HTTP_400_BAD_REQUEST)
 
     restaurant_ids = {item.menu_item.restaurant_id for item in cart_items}
     if len(restaurant_ids) != 1:
-        return Response(
-            {"error": "Your cart contains items from multiple restaurants."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"error": "Your cart contains items from multiple restaurants."}, status=status.HTTP_400_BAD_REQUEST)
 
     restaurant = cart_items[0].menu_item.restaurant
-    serializer = CartSerializer(cart)
-    
     subtotal = cart.total_price
+    delivery_charge = Decimal("60.00")
 
     deal = Deal.objects.filter(
         restaurant=restaurant,
         active_status=True,
-        minimum_order_amount__lte=subtotal
+        minimum_order_amount__lte=subtotal,
     ).order_by("-discount_value").first()
 
     discount_amount = Decimal("0.00")
@@ -575,15 +570,16 @@ def checkout_summary(request):
         elif deal.discount_type == "fixed":
             discount_amount = min(deal.discount_value, subtotal)
 
-    final_total = (subtotal - discount_amount).quantize(Decimal("0.01"))
+    final_total = (subtotal - discount_amount + delivery_charge).quantize(Decimal("0.01"))
 
     return Response(
         {
             "restaurant_id": restaurant.id,
             "restaurant_name": restaurant.name,
-            "cart": serializer.data,
+            "cart": CartSerializer(cart).data,
             "subtotal": subtotal,
             "discount_amount": discount_amount,
+            "delivery_charge": delivery_charge,
             "final_total": final_total,
             "applied_deal": deal.title if deal else None,
         },
@@ -606,45 +602,58 @@ def place_order(request):
     cart_items = list(cart.items.select_related("menu_item__restaurant"))
 
     if not cart_items:
-        return Response(
-            {"error": "Your cart is empty."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "Your cart is empty."}, status=status.HTTP_400_BAD_REQUEST)
 
     restaurant_ids = {item.menu_item.restaurant_id for item in cart_items}
     if len(restaurant_ids) != 1:
-        return Response(
-            {"error": "You can place an order from only one restaurant at a time."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"error": "You can place an order from only one restaurant at a time."}, status=status.HTTP_400_BAD_REQUEST)
+
+    customer_name = request.data.get("customer_name", "").strip()
+    phone_number = request.data.get("phone_number", "").strip()
+    delivery_address = request.data.get("delivery_address", "").strip()
+    payment_method = request.data.get("payment_method", "Cash on Delivery").strip()
+
+    if not customer_name:
+        return Response({"error": "Customer name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not phone_number:
+        return Response({"error": "Phone number is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not delivery_address:
+        return Response({"error": "Delivery address is required."}, status=status.HTTP_400_BAD_REQUEST)
 
     restaurant = cart_items[0].menu_item.restaurant
-    total_amount = sum(
-        (item.subtotal for item in cart_items),
-        Decimal("0.00")
-    ).quantize(Decimal("0.01"))
-    
+    subtotal = sum((item.subtotal for item in cart_items), Decimal("0.00")).quantize(Decimal("0.01"))
+    delivery_charge = Decimal("60.00")
+
     deal = Deal.objects.filter(
         restaurant=restaurant,
         active_status=True,
-        minimum_order_amount__lte=total_amount
+        minimum_order_amount__lte=subtotal,
     ).order_by("-discount_value").first()
 
     discount_amount = Decimal("0.00")
 
     if deal:
         if deal.discount_type == "percentage":
-            discount_amount = (total_amount * deal.discount_value / Decimal("100")).quantize(Decimal("0.01"))
+            discount_amount = (subtotal * deal.discount_value / Decimal("100")).quantize(Decimal("0.01"))
         elif deal.discount_type == "fixed":
-            discount_amount = min(deal.discount_value, total_amount)
+            discount_amount = min(deal.discount_value, subtotal)
 
-    final_amount = (total_amount - discount_amount).quantize(Decimal("0.01"))
+    final_amount = (subtotal - discount_amount + delivery_charge).quantize(Decimal("0.01"))
 
     with transaction.atomic():
         order = Order.objects.create(
             customer=request.user,
             restaurant=restaurant,
-            original_amount=total_amount,
+
+            customer_name=customer_name,
+            phone_number=phone_number,
+            delivery_address=delivery_address,
+            payment_method=payment_method,
+            delivery_charge=delivery_charge,
+
+            original_amount=subtotal,
             discount_amount=discount_amount,
             applied_deal_title=deal.title if deal else None,
             total_amount=final_amount,
@@ -662,42 +671,19 @@ def place_order(request):
 
         cart.items.all().delete()
 
-    notification_sent = False
-    if request.user.email:
-        try:
-            send_mail(
-                subject=f"FoodOTG Order Confirmation #{order.id}",
-                message=(
-                    f"Hello {request.user.first_name or request.user.username},\n\n"
-                    f"Your order #{order.id} has been confirmed.\n"
-                    f"Restaurant: {restaurant.name}\n"
-                    f"Original Total: ৳{total_amount}\n"
-                    f"Discount: ৳{discount_amount}\n"
-                    f"Final Total: ৳{order.total_amount}\n\n"
-                    f"Thank you for ordering with FoodOTG."
-                ),
-                from_email=None,
-                recipient_list=[request.user.email],
-                fail_silently=True,
-            )
-            notification_sent = True
-        except Exception:
-            notification_sent = False
-
     return Response(
         {
             "message": "Order placed successfully.",
             "order_id": order.id,
-            "original_amount": total_amount,
+            "subtotal": subtotal,
             "discount_amount": discount_amount,
+            "delivery_charge": delivery_charge,
             "final_amount": final_amount,
             "applied_deal": deal.title if deal else None,
-            "notification_sent": notification_sent,
             "redirect_url": f"/order-confirmation/{order.id}/",
         },
         status=status.HTTP_201_CREATED,
     )
-
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -1239,3 +1225,55 @@ def forgot_password_page(request):
 
 def reset_password_page(request, token):
     return render(request, "reset_password.html", {"token": token})
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def download_invoice(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id, customer=request.user)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="invoice_order_{order.id}.pdf"'
+
+    p = canvas.Canvas(response)
+
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(200, 800, "FoodOTG Invoice")
+
+    p.setFont("Helvetica", 12)
+    p.drawString(50, 760, f"Order ID: #{order.id}")
+    p.drawString(50, 740, f"Restaurant: {order.restaurant.name}")
+    p.drawString(50, 720, f"Customer: {order.customer_name}")
+    p.drawString(50, 700, f"Phone: {order.phone_number}")
+    p.drawString(50, 680, f"Address: {order.delivery_address}")
+    p.drawString(50, 660, f"Payment: {order.payment_method}")
+    p.drawString(50, 640, f"Status: {order.status}")
+
+    y = 600
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y, "Items")
+    y -= 25
+
+    p.setFont("Helvetica", 11)
+
+    for item in order.items.all():
+        p.drawString(50, y, f"{item.item_name} x {item.quantity}")
+        p.drawString(400, y, f"Tk {item.subtotal}")
+        y -= 22
+
+    y -= 20
+    p.drawString(50, y, f"Subtotal: Tk {order.original_amount}")
+    y -= 20
+    p.drawString(50, y, f"Discount: Tk {order.discount_amount}")
+    y -= 20
+    p.drawString(50, y, f"Delivery Charge: Tk {order.delivery_charge}")
+    y -= 30
+
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, y, f"Final Total: Tk {order.total_amount}")
+
+    p.showPage()
+    p.save()
+
+    return response

@@ -203,6 +203,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
+    rider_name = serializers.CharField(source="rider.user.username", read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     review_submitted = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
@@ -213,10 +214,19 @@ class OrderSerializer(serializers.ModelSerializer):
             "id",
             "restaurant",
             "restaurant_name",
+            "rider",
+            "rider_name",
+
+            "customer_name",
+            "phone_number",
+            "delivery_address",
+            "payment_method",
+            "delivery_charge",
+
             "status",
-            "total_amount",
             "original_amount",
             "discount_amount",
+            "total_amount",
             "applied_deal_title",
             "created_at",
             "items",
