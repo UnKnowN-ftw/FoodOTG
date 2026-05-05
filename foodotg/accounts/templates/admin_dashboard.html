@@ -1,304 +1,424 @@
 {% load static %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoodOTG | Admin Dashboard</title>
-    <link rel="stylesheet" href="{% static 'css/business_dashboard_styles.css' %}">
-
-<style>
-body {
-    background: linear-gradient(135deg, #2b0a0a, #3b1414, #5c1a1a);
-    font-family: "Segoe UI", sans-serif;
-}
-
-/* Container */
-.container {
-    background: #fff8f5;
-    border-radius: 18px;
-    padding: 24px;
-    color: #3b1414;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.4);
-}
-
-/* Header */
-.header {
-    background: linear-gradient(135deg, #5c1a1a, #7a1f1f);
-    padding: 22px;
-    border-radius: 14px;
-    color: #fff;
-    margin-bottom: 20px;
-}
-
-.header h2 {
-    font-size: 28px;
-}
-
-.subtitle {
-    color: #f5dada;
-}
-
-/* Stats */
-.stat-card {
-    background: #fff1eb;
-    border-radius: 12px;
-    padding: 18px;
-    border: 1px solid #d6a7a7;
-}
-
-.stat-card h3 {
-    color: #7a1f1f;
-}
-
-/* Section */
-.section h3 {
-    color: #5c1a1a;
-    border-left: 5px solid #7a1f1f;
-    padding-left: 10px;
-}
-
-/* Cards */
-.card,
-.review-card {
-    background: #ffffff;
-    border: 1px solid #e0bcbc;
-    border-radius: 12px;
-    padding: 14px;
-    transition: 0.3s;
-}
-
-.card:hover,
-.review-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(92, 26, 26, 0.25);
-}
-
-/* Reported reviews */
-.review-card.reported {
-    border: 2px solid #a11;
-    background: #fff0f0;
-}
-
-/* Badges */
-.badge {
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.badge-admin {
-    background: #5c1a1a;
-    color: white;
-}
-
-.badge-business {
-    background: #8b4513;
-    color: white;
-}
-
-.badge-customer {
-    background: #a0522d;
-    color: white;
-}
-
-.badge-reported {
-    background: #b91c1c;
-    color: white;
-}
-
-.badge-approved {
-    background: #166534;
-    color: white;
-}
-
-.badge-pending {
-    background: #d97706;
-    color: white;
-}
-
-/* Buttons */
-button {
-    background: linear-gradient(135deg, #7a1f1f, #a11);
-    color: white;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 8px;
-    transition: 0.2s;
-}
-
-button:hover {
-    background: linear-gradient(135deg, #5c1a1a, #7a1f1f);
-}
-
-.secondary-btn {
-    background: #5a3e36;
-}
-
-.secondary-btn:hover {
-    background: #3b2a24;
-}
-
-.logout-btn {
-    background: #2b0a0a;
-}
-
-.logout-btn:hover {
-    background: #000;
-}
-
-/* Text */
-.review-meta {
-    color: #6b4c4c;
-}
-
-.review-comment {
-    color: #3b1414;
-}
-
-/* Empty state */
-.empty-state {
-    background: #fff1eb;
-    border: 1px solid #e0bcbc;
-}
-</style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FoodOTG | Admin Panel</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'css/admin_dashboard_styles.css' %}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
         <div>
-            <h2>Admin Dashboard</h2>
-            <p class="subtitle">Manage users and remove fake reviews</p>
+          <h2>FoodOTG Admin Panel</h2>
+          <p class="subtitle">
+            Manage users, moderate reviews, and handle fake review reports.
+          </p>
         </div>
 
         <div class="header-actions">
-            <button class="logout-btn" onclick="logout()">Logout</button>
+          <button onclick="processInactiveUsers()">
+            Process Inactive Users
+          </button>
+          <button onclick="logout()">Logout</button>
         </div>
-    </div>
+      </div>
 
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3 id="totalUsers">0</h3>
-            <p>Total Users</p>
+      <div class="section">
+        <h3>Manage Users</h3>
+
+        <div class="admin-controls">
+          <input
+            id="userSearch"
+            type="text"
+            placeholder="Search users..."
+            oninput="resetUserPageAndLoad()"
+          />
         </div>
 
-        <div class="stat-card">
-            <h3 id="totalReviews">0</h3>
-            <p>Total Reviews</p>
-        </div>
-
-        <div class="stat-card">
-            <h3 id="reportedReviews">0</h3>
-            <p>Reported Reviews</p>
-        </div>
-    </div>
-
-    <div class="section">
-        <h3>User Management</h3>
         <div id="userList" class="grid"></div>
-    </div>
 
-    <div class="section">
+        <div class="pagination">
+          <button onclick="changeUserPage(-1)">Previous</button>
+          <span id="userPageLabel">Page 1</span>
+          <button onclick="changeUserPage(1)">Next</button>
+        </div>
+      </div>
+
+      <div class="section">
         <h3>Review Moderation</h3>
-        <div id="reviewList" class="reviews-grid"></div>
+
+        <div class="admin-controls">
+          <input
+            id="reviewSearch"
+            type="text"
+            placeholder="Search reviews..."
+            oninput="loadAdminDashboard()"
+          />
+        </div>
+
+        <div id="reviewList" class="grid"></div>
+      </div>
+
+      <div class="section">
+        <h3>Reported Reviews</h3>
+
+        <div class="admin-controls">
+          <select id="reportStatus" onchange="resetReportPageAndLoad()">
+            <option value="all">All Reports</option>
+            <option value="pending">Pending Reports</option>
+            <option value="resolved">Resolved Reports</option>
+          </select>
+        </div>
+
+        <div id="reportList" class="grid"></div>
+
+        <div class="pagination">
+          <button onclick="changeReportPage(-1)">Previous</button>
+          <span id="reportPageLabel">Page 1</span>
+          <button onclick="changeReportPage(1)">Next</button>
+        </div>
+      </div>
     </div>
-</div>
 
-<script>
-function getAccessToken() {
-    return localStorage.getItem("token");
-}
+    <script>
+      function getAccessToken() {
+        return localStorage.getItem("token") || localStorage.getItem("access");
+      }
 
-function authHeaders() {
-    return {
-        "Authorization": "Bearer " + getAccessToken()
-    };
-}
+      function authHeaders(extra = {}) {
+        return {
+          ...extra,
+          Authorization: "Bearer " + getAccessToken(),
+        };
+      }
 
-if (!getAccessToken()) {
-    window.location.href = "/admin-login/";
-}
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
 
-if (localStorage.getItem("role") !== "admin") {
-    alert("Access denied");
-    window.location.href = "/login/";
-}
+      if (!getAccessToken()) {
+        window.location.href = "/admin-login/";
+      }
 
-const userList = document.getElementById("userList");
-const reviewList = document.getElementById("reviewList");
+      if (localStorage.getItem("role") !== "admin") {
+        alert("Access denied. Admins only.");
+        window.location.href = "/admin-login/";
+      }
 
-async function loadUsers() {
-    const res = await fetch("/api/admin/users/", { headers: authHeaders() });
-    const users = await res.json();
+      let userPage = 1;
+      let reportPage = 1;
+      let pageSize = 6;
+      let userTotal = 0;
+      let reportTotal = 0;
 
-    userList.innerHTML = "";
+      async function loadAdminDashboard() {
+        const userSearch = document.getElementById("userSearch")?.value || "";
+        const reviewSearch =
+          document.getElementById("reviewSearch")?.value || "";
+        const reportStatus =
+          document.getElementById("reportStatus")?.value || "all";
 
-    users.forEach(u => {
-        userList.innerHTML += `
-        <div class="card">
-            <h4>${u.name}</h4>
-            <span class="badge">${u.role}</span>
-            <p>${u.email}</p>
-            ${u.role !== "admin" ? `<button onclick="deleteUser(${u.id})">Delete</button>` : ""}
-        </div>`;
-    });
+        const params = new URLSearchParams({
+          user_search: userSearch,
+          review_search: reviewSearch,
+          report_status: reportStatus,
+          user_page: userPage,
+          report_page: reportPage,
+        });
 
-    document.getElementById("totalUsers").innerText = users.length;
-}
+        const response = await fetch(
+          `/api/admin/dashboard/?${params.toString()}`,
+          {
+            headers: authHeaders(),
+          },
+        );
 
-async function loadReviews() {
-    const res = await fetch("/api/admin/reviews/", { headers: authHeaders() });
-    const reviews = await res.json();
+        const data = await response.json();
 
-    reviewList.innerHTML = "";
+        if (!response.ok) {
+          alert(data.error || "Failed to load admin dashboard.");
+          return;
+        }
 
-    let reportedCount = 0;
+        renderUsers(data.users || []);
+        renderReviews(data.reviews || []);
+        renderReports(data.reports || []);
 
-    reviews.forEach(r => {
-        if (r.is_reported) reportedCount++;
+        userTotal = data.pagination?.user_total || 0;
+        reportTotal = data.pagination?.report_total || 0;
+        pageSize = data.pagination?.page_size || 6;
 
-        reviewList.innerHTML += `
-        <div class="review-card ${r.is_reported ? "reported" : ""}">
-            <h4>${r.restaurant_name}</h4>
-            <p>${r.customer_name}</p>
-            <p>${r.comment}</p>
+        document.getElementById("userPageLabel").innerText = `Page ${userPage}`;
+        document.getElementById("reportPageLabel").innerText =
+          `Page ${reportPage}`;
+      }
 
-            ${r.is_reported ? `<p><strong>Reason:</strong> ${r.report_reason}</p>` : ""}
+      function renderUsers(users) {
+        const list = document.getElementById("userList");
+        list.innerHTML = "";
 
-            <button onclick="deleteReview(${r.id})">Delete</button>
-        </div>`;
-    });
+        if (!users.length) {
+          list.innerHTML = `<div class="card"><p>No users found.</p></div>`;
+          return;
+        }
 
-    document.getElementById("totalReviews").innerText = reviews.length;
-    document.getElementById("reportedReviews").innerText = reportedCount;
-}
+        users.forEach((user) => {
+          list.innerHTML += `
+      <div class="card ${user.is_banned ? "banned" : ""}">
+        <h4>${escapeHtml(user.name || user.username)}</h4>
+        <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
+        <p><strong>Role:</strong> ${escapeHtml(user.role)}</p>
+        <p><strong>Status:</strong> ${user.is_banned ? "Banned" : user.is_active ? "Active" : "Disabled"}</p>
+        <p><strong>Last Login:</strong> ${user.last_login ? new Date(user.last_login).toLocaleString() : "Never"}</p>
 
-async function deleteUser(id) {
-    await fetch(`/api/admin/users/${id}/delete/`, {
-        method: "DELETE",
-        headers: authHeaders()
-    });
-    loadUsers();
-}
+        <button 
+          onclick="toggleUserStatus(${user.id}, ${!user.is_active})"
+          ${user.is_banned ? "disabled" : ""}
+        >
+          ${user.is_active ? "Disable" : "Enable"}
+        </button>
 
-async function deleteReview(id) {
-    await fetch(`/api/admin/reviews/${id}/delete/`, {
-        method: "DELETE",
-        headers: authHeaders()
-    });
-    loadReviews();
-}
+        ${
+          user.is_banned
+            ? `<button class="danger-btn" onclick="unbanUser(${user.id})">Unban User</button>`
+            : `<button class="danger-btn" onclick="banUser(${user.id})">Ban User</button>`
+        }
+      </div>
+    `;
+        });
+      }
 
-function logout() {
-    localStorage.clear();
-    window.location.href = "/login/";
-}
+      function renderReviews(reviews) {
+        const list = document.getElementById("reviewList");
+        list.innerHTML = "";
 
-loadUsers();
-loadReviews();
-</script>
+        if (!reviews.length) {
+          list.innerHTML = `<div class="card"><p>No reviews found.</p></div>`;
+          return;
+        }
 
-</body>
+        reviews.forEach((review) => {
+          list.innerHTML += `
+      <div class="card">
+        <h4>${escapeHtml(review.restaurant_name)}</h4>
+        <p><strong>Customer:</strong> ${escapeHtml(review.customer_name)}</p>
+        <p><strong>Rating:</strong> ${review.rating}/5</p>
+        <p><strong>Comment:</strong> ${escapeHtml(review.comment || "No comment")}</p>
+        <p><strong>Status:</strong> ${review.is_approved ? "Approved" : "Hidden"}</p>
+        <p><strong>Reports:</strong> ${review.report_count}</p>
+
+        <div class="review-actions">
+          <button onclick="toggleReviewStatus(${review.id}, ${!review.is_approved})">
+            ${review.is_approved ? "Hide Review" : "Approve Review"}
+          </button>
+
+          <button class="danger-btn" onclick="deleteReview(${review.id})">
+            Delete Review
+          </button>
+        </div>
+      </div>
+    `;
+        });
+      }
+
+      function renderReports(reports) {
+        const list = document.getElementById("reportList");
+        list.innerHTML = "";
+
+        if (!reports.length) {
+          list.innerHTML = `<div class="card"><p>No reports found.</p></div>`;
+          return;
+        }
+
+        reports.forEach((report) => {
+          list.innerHTML += `
+      <div class="card">
+        <h4>Report #${report.id}</h4>
+        <p><strong>Restaurant:</strong> ${escapeHtml(report.restaurant_name)}</p>
+        <p><strong>Reported By:</strong> ${escapeHtml(report.reported_by)}</p>
+        <p><strong>Reason:</strong> ${escapeHtml(report.reason)}</p>
+        <p><strong>Review:</strong> ${escapeHtml(report.review_comment || "No comment")}</p>
+        <p><strong>Status:</strong> ${report.resolved ? "Resolved" : "Pending"}</p>
+
+        ${
+          !report.resolved
+            ? `
+          <button onclick="resolveReport(${report.id})">
+            Mark Resolved
+          </button>
+        `
+            : ""
+        }
+      </div>
+    `;
+        });
+      }
+
+      async function toggleUserStatus(userId, isActive) {
+        await fetch(`/api/admin/users/${userId}/status/`, {
+          method: "PUT",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ is_active: isActive }),
+        });
+
+        loadAdminDashboard();
+      }
+
+      async function toggleReviewStatus(reviewId, isApproved) {
+        const response = await fetch(`/api/admin/reviews/${reviewId}/status/`, {
+          method: "PUT",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ is_approved: isApproved }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          loadAdminDashboard();
+        } else {
+          alert(data.error || "Failed to update review status.");
+        }
+      }
+
+      async function deleteReview(reviewId) {
+        if (
+          !confirm("Are you sure you want to permanently delete this review?")
+        )
+          return;
+
+        const response = await fetch(`/api/admin/reviews/${reviewId}/delete/`, {
+          method: "DELETE",
+          headers: authHeaders(),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert("Review deleted successfully.");
+          loadAdminDashboard();
+        } else {
+          alert(data.error || "Failed to delete review.");
+        }
+      }
+
+      async function resolveReport(reportId) {
+        const response = await fetch(
+          `/api/admin/reports/${reportId}/resolve/`,
+          {
+            method: "PUT",
+            headers: authHeaders(),
+          },
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert("Report resolved successfully.");
+          loadAdminDashboard();
+        } else {
+          alert(data.error || "Failed to resolve report.");
+        }
+      }
+
+      async function banUser(userId) {
+        if (!confirm("Ban this user and hide all of their reviews?")) return;
+
+        const response = await fetch(`/api/admin/users/${userId}/ban/`, {
+          method: "PUT",
+          headers: authHeaders(),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert("User banned successfully.");
+          loadAdminDashboard();
+        } else {
+          alert(data.error || "Failed to ban user.");
+        }
+      }
+
+      async function unbanUser(userId) {
+        if (!confirm("Unban this user and reactivate their account?")) return;
+
+        const response = await fetch(`/api/admin/users/${userId}/unban/`, {
+          method: "PUT",
+          headers: authHeaders(),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert("User unbanned successfully.");
+          loadAdminDashboard();
+        } else {
+          alert(data.error || "Failed to unban user.");
+        }
+      }
+
+      async function processInactiveUsers() {
+        if (
+          !confirm(
+            "Warn users inactive for almost 1 year and disable users inactive for over 1 year?",
+          )
+        ) {
+          return;
+        }
+
+        const response = await fetch("/api/admin/users/process-inactive/", {
+          method: "POST",
+          headers: authHeaders(),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert(
+            `Done. Warned: ${data.warned_count}, Disabled: ${data.disabled_count}`,
+          );
+          loadAdminDashboard();
+        } else {
+          alert(data.error || "Failed to process inactive users.");
+        }
+      }
+
+      function resetUserPageAndLoad() {
+        userPage = 1;
+        loadAdminDashboard();
+      }
+
+      function resetReportPageAndLoad() {
+        reportPage = 1;
+        loadAdminDashboard();
+      }
+
+      function changeUserPage(direction) {
+        const maxPage = Math.ceil(userTotal / pageSize) || 1;
+        userPage = Math.max(1, Math.min(maxPage, userPage + direction));
+        loadAdminDashboard();
+      }
+
+      function changeReportPage(direction) {
+        const maxPage = Math.ceil(reportTotal / pageSize) || 1;
+        reportPage = Math.max(1, Math.min(maxPage, reportPage + direction));
+        loadAdminDashboard();
+      }
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "/admin-login/";
+      }
+
+      loadAdminDashboard();
+    </script>
+  </body>
 </html>

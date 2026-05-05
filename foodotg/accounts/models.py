@@ -8,14 +8,15 @@ from django.utils.timezone import now
 
 class UserProfile(models.Model):
     ROLE_CHOICES = (
-    ('customer', 'Customer'),
-    ('business_owner', 'Business Owner'),
-    ('admin', 'Admin'),
-    ('rider', 'Rider'),
-)
+        ("customer", "Customer"),
+        ("business_owner", "Business Owner"),
+        ("admin", "Admin"),
+        ("rider", "Rider"),
+    )
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    is_banned = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
@@ -32,7 +33,7 @@ class Restaurant(models.Model):
     price_range = models.CharField(max_length=50)
     average_rating = models.FloatField(default=0.0)
     delivery_available = models.BooleanField(default=True)
-    image = models.URLField(blank=True, null=True)
+    image = models.ImageField(upload_to="restaurants/", blank=True, null=True)
     created_at = models.DateTimeField(default=now, editable=False)
 
     def __str__(self):
@@ -76,6 +77,7 @@ class MenuItem(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    image = models.ImageField(upload_to="menu_items/", blank=True, null=True)
     available = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=now, editable=False)
 
@@ -122,22 +124,38 @@ class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
-        ('completed', 'Completed'),
+        ('preparing', 'Preparing'),
+        ('on_the_way', 'On The Way'),
+        ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
     )
 
     customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='orders')
+
+    rider = models.ForeignKey(
+        'Rider',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_orders"
+    )
+
+    customer_name = models.CharField(max_length=150, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    delivery_address = models.TextField(blank=True, null=True)
+    payment_method = models.CharField(max_length=50, default="Cash on Delivery")
+    delivery_charge = models.DecimalField(max_digits=10, decimal_places=2, default=60.00)
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    created_at = models.DateTimeField(default=now, editable=False)
     original_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     applied_deal_title = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(default=now, editable=False)
 
     def __str__(self):
         return f"Order #{self.id} - {self.customer.username} - {self.restaurant.name}"
-
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
@@ -164,7 +182,6 @@ class Review(models.Model):
     comment = models.TextField(blank=True, null=True)
     is_approved = models.BooleanField(default=True)
 
-    # ✅ ADD HERE (INSIDE CLASS)
     is_reported = models.BooleanField(default=False)
     report_reason = models.TextField(blank=True, null=True)
     reported_by = models.ForeignKey(
@@ -180,6 +197,29 @@ class Review(models.Model):
     def __str__(self):
         return f"{self.restaurant.name} - {self.rating}/5 by {self.user.username}"
     
+
+class ReviewReport(models.Model):
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name="reports"
+    )
+    reported_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="review_reports"
+    )
+    reason = models.TextField()
+    resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=now, editable=False)
+
+    class Meta:
+        unique_together = ("review", "reported_by")
+
+    def __str__(self):
+        return f"Report #{self.id} for Review #{self.review.id}"
+
+    
 class Rider(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="rider_profile")
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -189,10 +229,3 @@ class Rider(models.Model):
     def __str__(self):
         return f"{self.user.username} - Rider"
 
-rider = models.ForeignKey(
-    Rider,
-    on_delete=models.SET_NULL,
-    null=True,
-    blank=True,
-    related_name="assigned_orders"
-)

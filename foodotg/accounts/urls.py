@@ -1,7 +1,10 @@
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
+
     # ================= AUTH APIs =================
     path("api/register/", views.register),
     path("api/login/", views.user_login),
@@ -22,6 +25,8 @@ urlpatterns = [
     path("api/menu-items/<int:item_id>/delete/", views.delete_menu_item),
 
     path("api/customer/restaurants/<int:restaurant_id>/menu/", views.customer_restaurant_menu_items),
+    path("api/customer/restaurants/<int:restaurant_id>/reviews/", views.customer_restaurant_reviews),
+
 
     # ================= CART =================
     path("api/cart/", views.get_cart),
@@ -44,33 +49,51 @@ urlpatterns = [
     path("customer-login/", views.customer_login_page, name="customer_login"),
     path("customer-register/", views.customer_register_page),
     path("customer-dashboard/", views.customer_dashboard_page, name="customer_dashboard"),
-	path("checkout/", views.checkout_page),
 
     path("business-login/", views.business_login_page, name="business_login"),
     path("business-register/", views.business_register_page),
-    path("business-dashboard/", views.business_dashboard_page),
-	
+    path("business-dashboard/", views.business_dashboard_page, name="business_dashboard"),
+
+    path("checkout/", views.checkout_page),
+    path("order-confirmation/<int:order_id>/", views.order_confirmation_page),
+
+    # ================= ADMIN =================
     path("admin-login/", views.admin_login_page, name="admin_login"),
     path("admin-dashboard/", views.admin_dashboard_page, name="admin_dashboard"),
 
+    path("api/admin/dashboard/", views.admin_dashboard_data),
     path("api/admin/users/", views.admin_users),
     path("api/admin/users/<int:user_id>/delete/", views.delete_user),
 
     path("api/admin/reviews/", views.admin_reviews),
     path("api/admin/reviews/<int:review_id>/approve/", views.approve_review),
     path("api/admin/reviews/<int:review_id>/delete/", views.delete_review),
+    path("api/admin/reports/<int:report_id>/resolve/", views.admin_resolve_review_report),
+    path("api/admin/reviews/<int:review_id>/status/", views.admin_update_review_status),
+    path("api/admin/users/<int:user_id>/status/", views.admin_update_user_status),
+    path("api/admin/users/<int:user_id>/ban/", views.admin_ban_user),
+    path("api/admin/users/<int:user_id>/unban/", views.admin_unban_user),
 
-    path("order-confirmation/<int:order_id>/", views.order_confirmation_page),
-	
-    path("api/reviews/<int:review_id>/report/", views.report_review),
-    
-    path("rider-register/", views.rider_register_page),
-	path("rider-login/", views.rider_login_page),
+    # ================= RIDER =================
     path("rider-dashboard/", views.rider_dashboard_page, name="rider_dashboard"),
+    path("rider-login/", views.rider_login_page),
+    path("rider-register/", views.rider_register_page),
 
     path("api/admin/riders/", views.admin_riders),
     path("api/admin/orders/", views.admin_orders),
     path("api/admin/orders/<int:order_id>/assign-rider/", views.assign_rider_to_order),
 
     path("api/rider/orders/", views.rider_orders),
+
+    # ================= REPORT =================
+    path("api/reviews/<int:review_id>/report/", views.report_review),
+
+    # ================= PASSWORD RESET =================
+
+    path("forgot-password/", views.forgot_password_page),
+    path("reset-password/<str:token>/", views.reset_password_page),
+	path("forgot-password/", views.forgot_password_page),
+	path("api/orders/<int:order_id>/invoice/", views.download_invoice),
+    
 ]
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

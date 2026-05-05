@@ -3,7 +3,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FoodOTG | Business Login</title>
     <link rel="stylesheet" href="{% static 'css/business_login_styles.css' %}">
 </head>
@@ -25,7 +24,11 @@
     <button onclick="loginBusiness()">Login</button>
 
     <p class="footer-text">
-        Don’t have an account? <a href="/register/">Register</a>
+        <a href="/forgot-password/">Forgot Password?</a>
+    </p>
+
+    <p class="footer-text">
+        Don’t have an account? <a href="/business-register/">Register</a>
     </p>
 </div>
 
@@ -45,21 +48,19 @@ async function loginBusiness() {
     try {
         const response = await fetch("/api/login/", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ username, password })
         });
 
         const data = await response.json();
 
-        if (!data.access) {
-            msg.innerText = data.error || "Login failed. Please check your credentials.";
+        if (!response.ok || !data.access) {
+            msg.innerText = data.error || "Login failed.";
             return;
         }
 
-        if (data.role !== "business_owner" && data.role !== "admin") {
-            msg.innerText = "This account is not registered as a business owner or admin.";
+        if (data.role !== "business_owner") {
+            msg.innerText = "This account is not registered as a business owner.";
             return;
         }
 
@@ -67,11 +68,7 @@ async function loginBusiness() {
         localStorage.setItem("refresh", data.refresh);
         localStorage.setItem("role", data.role);
 
-        if (data.role === "admin") {
-            window.location.href = "/admin-dashboard/";
-        } else {
-            window.location.href = "/business-dashboard/";
-        }
+        window.location.href = "/business-dashboard/";
 
     } catch (error) {
         msg.innerText = "Server communication error.";

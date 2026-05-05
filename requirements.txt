@@ -1,0 +1,7 @@
+pipenv
+djangorestframework
+djangorestframework-simplejwt
+django
+pillow
+reportlab
+selenium

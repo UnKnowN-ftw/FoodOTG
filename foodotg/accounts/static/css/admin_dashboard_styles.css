@@ -1,0 +1,156 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --green-main: #2e7d32;
+    --green-dark: #1b5e20;
+    --green-soft: #f1f8f4;
+    --green-border: #d0e8d5;
+    --black: #000000;
+    --muted: #555555;
+}
+
+body {
+    font-family: "Segoe UI", sans-serif;
+    background: var(--green-soft);
+    color: var(--black);
+    padding: 30px 15px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--green-border);
+}
+
+.header h2 {
+    font-size: 30px;
+    color: var(--black);
+}
+
+.subtitle {
+    color: var(--muted);
+    margin-top: 6px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.section {
+    margin-top: 30px;
+}
+
+.section h3 {
+    font-size: 24px;
+    margin-bottom: 16px;
+    color: var(--black);
+}
+
+.admin-controls {
+    margin-bottom: 18px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-controls input,
+.admin-controls select {
+    padding: 10px 12px;
+    border: 1px solid var(--green-border);
+    border-radius: 10px;
+    min-width: 240px;
+    font-size: 14px;
+    color: #000;
+    background: #fff;
+}
+
+.admin-controls input:focus,
+.admin-controls select:focus {
+    outline: none;
+    border-color: var(--green-main);
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.card {
+    border: 1px solid var(--green-border);
+    border-radius: 16px;
+    padding: 18px;
+    background: #ffffff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.card h4 {
+    margin-bottom: 10px;
+    color: var(--black);
+}
+
+.card p {
+    color: var(--black);
+    margin-bottom: 8px;
+    line-height: 1.45;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 10px;
+    background: var(--green-main);
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--green-dark);
+}
+
+.danger-btn {
+    background: #b91c1c;
+}
+
+.danger-btn:hover {
+    background: #7f1d1d;
+}
+
+.pagination {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pagination span {
+    font-weight: 700;
+    color: #000;
+}
+
+.card.banned {
+  border: 2px solid #dc2626;
+  background: #fff5f5;
+}

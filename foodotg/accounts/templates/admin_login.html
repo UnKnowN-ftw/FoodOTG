@@ -1,69 +1,74 @@
 {% load static %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FoodOTG | Admin Login</title>
-    <link rel="stylesheet" href="{% static 'css/business_login_styles.css' %}">
-</head>
-<body>
+    <link rel="stylesheet" href="{% static 'css/admin_login_styles.css' %}" />
+  </head>
+  <body>
+    <div class="login-container">
+      <h2>Admin Login</h2>
 
-<div class="container">
-    <h2>Admin Login</h2>
+      <p id="msg" class="error"></p>
 
-    <div id="msg" class="error"></div>
-
-    <div class="input-group">
-        <input type="text" id="username" placeholder="Admin Email">
+      <form id="adminLoginForm">
+        <input
+          type="text"
+          id="username"
+          placeholder="Admin Email / Username"
+          required
+        />
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+      </form>
     </div>
 
-    <div class="input-group">
-        <input type="password" id="password" placeholder="Password">
-    </div>
+    <script>
+      document
+        .getElementById("adminLoginForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
 
-    <button onclick="loginAdmin()">Login</button>
-</div>
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value;
+          const msg = document.getElementById("msg");
 
-<script>
-async function loginAdmin() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    const msg = document.getElementById("msg");
+          msg.innerText = "";
 
-    msg.innerText = "";
+          try {
+            const response = await fetch("/api/login/", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ username, password }),
+            });
 
-    if (!username || !password) {
-        msg.innerText = "All fields must be filled.";
-        return;
-    }
+            const data = await response.json();
 
-    const response = await fetch("/api/login/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ username, password })
-    });
+            if (!response.ok || !data.access) {
+              msg.innerText = data.error || "Login failed.";
+              return;
+            }
 
-    const data = await response.json();
+            if (data.role !== "admin") {
+              localStorage.clear();
+              msg.innerText = "This account is not an admin.";
+              return;
+            }
 
-    if (!data.access) {
-        msg.innerText = data.error || "Login failed.";
-        return;
-    }
+            localStorage.setItem("access", data.access);
+            localStorage.setItem("token", data.access);
+            localStorage.setItem("refresh", data.refresh);
+            localStorage.setItem("role", data.role);
 
-    if (data.role !== "admin") {
-        msg.innerText = "This account is not an admin.";
-        return;
-    }
-
-    localStorage.setItem("token", data.access);
-    localStorage.setItem("role", data.role);
-
-    window.location.href = "/admin-dashboard/";
-}
-</script>
-
-</body>
+            window.location.href = "/admin-dashboard/";
+          } catch (error) {
+            msg.innerText = "Server communication error.";
+          }
+        });
+    </script>
+  </body>
 </html>
