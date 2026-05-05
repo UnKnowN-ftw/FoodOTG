@@ -1,4 +1,3 @@
-pipenv
 djangorestframework
 djangorestframework-simplejwt
 django
