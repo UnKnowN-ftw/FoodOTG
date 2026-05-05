@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodOTG | Order Confirmation</title>
+    <link rel="stylesheet" href="{% static 'css/order_confirmation_styles.css' %}">
+</head>
+
+<body>
+
+    <div class="confirmation-page">
+        <div class="confirmation-card">
+            <div class="confirmation-header">
+                <h1>✅ Order Confirmed</h1>
+                <p>Your order has been placed successfully.</p>
+                <button class="invoice-btn" type="button" onclick="downloadInvoice()">
+                    Download Invoice PDF
+                </button>
+            </div>
+
+            <div id="content" class="confirmation-content">
+                <p class="loading-text">Loading confirmation...</p>
+            </div>
+
+            <div id="content" class="confirmation-content">
+                <p class="loading-text">Loading confirmation...</p>
+            </div>
+            
+            <div class="tracking-box">
+                <h2>Order Tracking</h2>
+            
+                <div class="tracking-steps">
+                    <div class="step" id="step-confirmed">Confirmed</div>
+                    <div class="step" id="step-preparing">Preparing</div>
+                    <div class="step" id="step-onway">On The Way</div>
+                    <div class="step" id="step-delivered">Delivered</div>
+                </div>
+            </div>
+            
+            <div class="confirmation-actions">
+                <button class="invoice-btn" type="button" onclick="downloadInvoice()">
+                    Download Invoice PDF
+                </button>
+            
+                <a href="/customer-dashboard/" class="back-btn">Back to Dashboard</a>
+            </div>>
+        </div>
+        <script>
+            function getAccessToken() {
+                return localStorage.getItem("token") || localStorage.getItem("access");
+            }
+
+            const token = getAccessToken();
+            const orderId = "{{ order_id|escapejs }}";
+
+            function escapeHtml(text) {
+                return String(text || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            async function loadConfirmation() {
+                const content = document.getElementById("content");
+
+                if (!token) {
+                    window.location.href = "/customer-login/";
+                    return;
+                }
+
+                if (!orderId) {
+                    content.innerHTML = `<p class="error-text">Order ID is missing.</p>`;
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/orders/${orderId}/confirmation/`, {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    });
+
+                    const rawText = await response.text();
+
+                    let data;
+                    try {
+                        data = JSON.parse(rawText);
+                    } catch (parseError) {
+                        console.error("Non-JSON response:", rawText);
+                        content.innerHTML = `<p class="error-text">Server returned an invalid response.</p>`;
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        content.innerHTML = `<p class="error-text">${escapeHtml(data.error || "Failed to load order confirmation.")}</p>`;
+                        updateTracking(data.status);
+                        return;
+                    }
+
+                    const items = Array.isArray(data.items) ? data.items : [];
+
+                    const itemsHtml = items.length
+                        ? items.map(item => `
+                <div class="order-item">
+                    <div class="item-info">
+                        <h3>${escapeHtml(item.item_name)}</h3>
+                        <p>Quantity: ${item.quantity}</p>
+                        <p>Unit Price: ৳${item.unit_price}</p>
+                    </div>
+                    <div class="item-subtotal">৳${item.subtotal}</div>
+                </div>
+            `).join("")
+                        : `<p class="muted-text">No items found.</p>`;
+
+                    content.innerHTML = `
+                <div class="order-summary">
+                    <div class="summary-row"><span>Order ID</span><strong>#${data.id}</strong></div>
+                    <div class="summary-row"><span>Restaurant</span><strong>${escapeHtml(data.restaurant_name)}</strong></div>
+                    <div class="summary-row"><span>Status</span><strong>${escapeHtml(data.status)}</strong></div>
+                    <div class="summary-row"><span>Placed At</span><strong>${new Date(data.created_at).toLocaleString()}</strong></div>
+                </div>
+
+                <div class="order-summary">
+                    <h2>Billing Details</h2>
+                    <div class="summary-row"><span>Name</span><strong>${escapeHtml(data.customer_name)}</strong></div>
+                    <div class="summary-row"><span>Phone</span><strong>${escapeHtml(data.phone_number)}</strong></div>
+                    <div class="summary-row"><span>Address</span><strong>${escapeHtml(data.delivery_address)}</strong></div>
+                    <div class="summary-row"><span>Payment</span><strong>${escapeHtml(data.payment_method)}</strong></div>
+                </div>
+
+                <div class="items-section">
+                    <h2>Ordered Items</h2>
+                    ${itemsHtml}
+                </div>
+
+                <div class="order-total">
+                    <div>Subtotal: ৳${data.original_amount}</div>
+                    <div>Discount: -৳${data.discount_amount}</div>
+                    <div>Delivery Charge: ৳${data.delivery_charge}</div>
+                    ${data.applied_deal_title ? `<div>Applied Deal: ${escapeHtml(data.applied_deal_title)}</div>` : ""}
+                    <div><strong>Final Total: ৳${data.total_amount}</strong></div>
+                </div>
+            `;
+                } catch (error) {
+                    console.error("Confirmation fetch error:", error);
+                    content.innerHTML = `<p class="error-text">Server communication error.</p>`;
+                }
+                setInterval(loadConfirmation, 5000);
+            }
+
+            loadConfirmation();
+            async function downloadInvoice() {
+                try {
+                    const response = await fetch(`/api/orders/${orderId}/invoice/`, {
+                        method: "GET",
+                        headers: {
+                            Authorization: "Bearer " + token
+                        }
+                    });
+
+                    if (!response.ok) {
+                        alert("Failed to download invoice.");
+                        return;
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `invoice_order_${orderId}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    alert("Server error while downloading invoice.");
+                }
+            }
+            function updateTracking(status) {
+                const steps = {
+                    confirmed: ["step-confirmed"],
+                    preparing: ["step-confirmed", "step-preparing"],
+                    on_the_way: ["step-confirmed", "step-preparing", "step-onway"],
+                    delivered: ["step-confirmed", "step-preparing", "step-onway", "step-delivered"]
+                };
+
+                const activeSteps = steps[status] || [];
+
+                Object.values(steps).flat().forEach(id => {
+                    document.getElementById(id)?.classList.remove("active");
+                });
+
+                activeSteps.forEach(id => {
+                    document.getElementById(id)?.classList.add("active");
+                });
+            }
+        </script>
+
+</body>
+
+</html>
