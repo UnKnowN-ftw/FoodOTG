@@ -967,7 +967,7 @@ def admin_dashboard_data(request):
     review_search = request.GET.get("review_search", "").strip()
     report_status = request.GET.get("report_status", "all").strip()
 
-    users = User.objects.select_related("userprofile").all().order_by("id")
+    users = User.objects.all().order_by("id")
 
     if user_search:
         users = users.filter(
@@ -976,7 +976,9 @@ def admin_dashboard_data(request):
             | models.Q(first_name__icontains=user_search)
         )
 
-    reviews = Review.objects.select_related("user", "restaurant", "order").order_by("-created_at")
+    reviews = Review.objects.select_related("user", "restaurant").order_by(
+        "-created_at"
+    )
 
     if review_search:
         reviews = reviews.filter(
@@ -988,9 +990,7 @@ def admin_dashboard_data(request):
         )
 
     reports = ReviewReport.objects.select_related(
-        "review",
-        "review__restaurant",
-        "reported_by",
+        "review", "review__restaurant", "reported_by"
     ).order_by("-created_at")
 
     if report_status == "pending":
@@ -999,10 +999,6 @@ def admin_dashboard_data(request):
         reports = reports.filter(resolved=True)
 
     user_data = []
-    customer_data = []
-    business_owner_data = []
-    admin_data = []
-
     for user in users:
         try:
             role = user.userprofile.role
@@ -1011,197 +1007,66 @@ def admin_dashboard_data(request):
             role = "customer"
             is_banned = False
 
-        item = {
-            "id": user.id,
-            "name": user.first_name or user.username,
-            "email": user.email or user.username,
-            "username": user.username,
-            "role": role,
-            "is_active": user.is_active,
-            "is_banned": is_banned,
-            "is_staff": user.is_staff,
-            "is_superuser": user.is_superuser,
-            "last_login": user.last_login,
-            "date_joined": user.date_joined,
-        }
-
-        user_data.append(item)
-
-        if role == "customer":
-            customer_data.append(item)
-        elif role == "business_owner":
-            business_owner_data.append(item)
-        elif role == "admin":
-            admin_data.append(item)
-
-    restaurant_data = []
-    restaurants = Restaurant.objects.select_related("owner").all().order_by("id")
-
-    for restaurant in restaurants:
-        restaurant_data.append({
-            "id": restaurant.id,
-            "name": restaurant.name,
-            "owner": restaurant.owner.first_name or restaurant.owner.username,
-            "owner_email": restaurant.owner.email or restaurant.owner.username,
-            "description": restaurant.description,
-            "address": restaurant.address,
-            "category": restaurant.category,
-            "price_range": restaurant.price_range,
-            "average_rating": restaurant.average_rating,
-            "delivery_available": restaurant.delivery_available,
-            "latitude": restaurant.latitude,
-            "longitude": restaurant.longitude,
-            "created_at": restaurant.created_at,
-        })
-
-    menu_item_data = []
-    menu_items = MenuItem.objects.select_related("restaurant").all().order_by("id")
-
-    for item in menu_items:
-        menu_item_data.append({
-            "id": item.id,
-            "name": item.name,
-            "restaurant": item.restaurant.name,
-            "description": item.description,
-            "price": str(item.price),
-            "available": item.available,
-            "created_at": item.created_at,
-        })
-
-    deal_data = []
-    deals = Deal.objects.select_related("restaurant").all().order_by("id")
-
-    for deal in deals:
-        deal_data.append({
-            "id": deal.id,
-            "title": deal.title,
-            "restaurant": deal.restaurant.name,
-            "description": deal.description,
-            "active_status": deal.active_status,
-            "discount_type": deal.discount_type,
-            "discount_value": str(deal.discount_value),
-            "minimum_order_amount": str(deal.minimum_order_amount),
-        })
-
-    order_data = []
-    orders = Order.objects.select_related(
-        "customer",
-        "restaurant",
-        "rider",
-        "rider__user",
-    ).all().order_by("-created_at")
-
-    for order in orders:
-        order_data.append({
-            "id": order.id,
-            "customer": order.customer.first_name or order.customer.username,
-            "customer_email": order.customer.email or order.customer.username,
-            "restaurant": order.restaurant.name,
-            "rider": order.rider.user.username if order.rider else "Not Assigned",
-            "customer_name": order.customer_name,
-            "phone_number": order.phone_number,
-            "delivery_address": order.delivery_address,
-            "payment_method": order.payment_method,
-            "status": order.status,
-            "original_amount": str(order.original_amount),
-            "discount_amount": str(order.discount_amount),
-            "delivery_charge": str(order.delivery_charge),
-            "total_amount": str(order.total_amount),
-            "applied_deal_title": order.applied_deal_title,
-            "created_at": order.created_at,
-        })
-
-    rider_data = []
-    riders = Rider.objects.select_related("user").all().order_by("id")
-
-    for rider in riders:
-        rider_data.append({
-            "id": rider.id,
-            "name": rider.user.first_name or rider.user.username,
-            "email": rider.user.email or rider.user.username,
-            "phone": rider.phone,
-            "vehicle_type": rider.vehicle_type,
-            "is_available": rider.is_available,
-        })
-
-    cart_data = []
-    carts = Cart.objects.select_related("user").prefetch_related("items").all().order_by("id")
-
-    for cart in carts:
-        cart_data.append({
-            "id": cart.id,
-            "user": cart.user.first_name or cart.user.username,
-            "email": cart.user.email or cart.user.username,
-            "total_items": cart.total_items,
-            "total_price": str(cart.total_price),
-            "created_at": cart.created_at,
-            "updated_at": cart.updated_at,
-        })
+        user_data.append(
+            {
+                "id": user.id,
+                "name": user.first_name or user.username,
+                "email": user.email or user.username,
+                "username": user.username,
+                "role": role,
+                "is_active": user.is_active,
+                "is_banned": is_banned, 
+                "last_login": user.last_login,
+            }
+        )
 
     review_data = []
     for review in reviews:
-        review_data.append({
-            "id": review.id,
-            "restaurant_name": review.restaurant.name,
-            "customer_name": review.user.first_name or review.user.username,
-            "customer_email": review.user.email or review.user.username,
-            "order_id": review.order.id,
-            "rating": review.rating,
-            "comment": review.comment,
-            "is_approved": review.is_approved,
-            "is_reported": review.is_reported,
-            "report_count": review.reports.count(),
-            "created_at": review.created_at,
-        })
+        review_data.append(
+            {
+                "id": review.id,
+                "restaurant_name": review.restaurant.name,
+                "customer_name": review.user.first_name or review.user.username,
+                "rating": review.rating,
+                "comment": review.comment,
+                "is_approved": review.is_approved,
+                "created_at": review.created_at,
+                "report_count": review.reports.count(),
+            }
+        )
 
     report_data = []
     for report in reports:
-        report_data.append({
-            "id": report.id,
-            "review_id": report.review.id,
-            "restaurant_name": report.review.restaurant.name,
-            "review_comment": report.review.comment,
-            "reported_by": report.reported_by.first_name or report.reported_by.username,
-            "reason": report.reason,
-            "resolved": report.resolved,
-            "created_at": report.created_at,
-        })
+        report_data.append(
+            {
+                "id": report.id,
+                "review_id": report.review.id,
+                "restaurant_name": report.review.restaurant.name,
+                "review_comment": report.review.comment,
+                "reported_by": report.reported_by.first_name
+                or report.reported_by.username,
+                "reason": report.reason,
+                "resolved": report.resolved,
+                "created_at": report.created_at,
+            }
+        )
 
-    return Response({
-        "summary": {
-            "total_users": len(user_data),
-            "total_customers": len(customer_data),
-            "total_business_owners": len(business_owner_data),
-            "total_admins": len(admin_data),
-            "total_riders": len(rider_data),
-            "total_restaurants": len(restaurant_data),
-            "total_menu_items": len(menu_item_data),
-            "total_deals": len(deal_data),
-            "total_orders": len(order_data),
-            "total_carts": len(cart_data),
-            "total_reviews": len(review_data),
-            "total_reports": len(report_data),
-        },
-        "users": user_data,
-        "customers": customer_data,
-        "business_owners": business_owner_data,
-        "admins": admin_data,
-        "restaurants": restaurant_data,
-        "menu_items": menu_item_data,
-        "deals": deal_data,
-        "orders": order_data,
-        "riders": rider_data,
-        "carts": cart_data,
-        "reviews": review_data,
-        "reports": report_data,
-        "pagination": {
-            "user_page": 1,
-            "user_total": len(user_data),
-            "report_page": 1,
-            "report_total": len(report_data),
-            "page_size": 6,
-        },
-    }, status=status.HTTP_200_OK)
+    return Response(
+        {
+            "users": user_data,
+            "reviews": review_data,
+            "reports": report_data,
+            "pagination": {
+                "user_page": 1,
+                "user_total": len(user_data),
+                "report_page": 1,
+                "report_total": len(report_data),
+                "page_size": 6,
+            },
+        }
+    )
+
+
 # =========================
 # ADMIN USER MANAGEMENT
 # =========================
