@@ -1,55 +1,137 @@
 {% load static %}
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>FoodOTG | Admin Panel</title>
-    <link
-      rel="stylesheet"
-      href="{% static 'css/admin_dashboard_styles.css' %}"
-    />
-  </head>
-  <body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodOTG | Admin Panel</title>
+  <link rel="stylesheet" href="{% static 'css/admin_dashboard_styles.css' %}" />
+</head>
+
+<body>
+  <div class="admin-shell">
     <div class="container">
+
+      <!-- HEADER -->
       <div class="header">
         <div>
-          <h2>FoodOTG Admin Panel</h2>
+          <p class="eyebrow">FoodOTG Control Center</p>
+          <h2>Admin Panel</h2>
           <p class="subtitle">
-            Manage users, moderate reviews, and handle fake review reports.
+            View database records by category, manage users, moderate reviews, and verify FoodOTG data.
           </p>
         </div>
 
         <div class="header-actions">
-          <button onclick="processInactiveUsers()">
-            Process Inactive Users
-          </button>
-          <button onclick="logout()">Logout</button>
+          <button type="button" onclick="loadAdminDashboard()">Refresh Data</button>
+          <button type="button" class="logout-btn" onclick="logout()">Logout</button>
         </div>
       </div>
 
+      <!-- DATABASE OVERVIEW -->
       <div class="section">
-        <h3>Manage Users</h3>
+        <div class="section-heading">
+          <div>
+            <h3>Database Overview</h3>
+            <p>Live row-column chart of important FoodOTG database records.</p>
+          </div>
+        </div>
+
+        <div id="databaseSummary" class="overview-chart-wrapper"></div>
+      </div>
+
+      <!-- PEOPLE DATABASE -->
+      <div class="section">
+        <div class="section-heading">
+          <div>
+            <h3>People Database</h3>
+            <p>Click a role to view only that role’s data.</p>
+          </div>
+        </div>
+
+        <div class="role-tabs">
+          <button type="button" id="tabCustomers" class="role-tab active" onclick="switchRoleTab('customers')">
+            Customers
+          </button>
+          <button type="button" id="tabOwners" class="role-tab" onclick="switchRoleTab('owners')">
+            Business Owners
+          </button>
+          <button type="button" id="tabRiders" class="role-tab" onclick="switchRoleTab('riders')">
+            Riders
+          </button>
+          <button type="button" id="tabAllUsers" class="role-tab" onclick="switchRoleTab('allUsers')">
+            All Users
+          </button>
+        </div>
 
         <div class="admin-controls">
           <input
-            id="userSearch"
+            id="peopleSearch"
             type="text"
-            placeholder="Search users..."
-            oninput="resetUserPageAndLoad()"
+            placeholder="Search selected role by name, email, username, or phone..."
+            oninput="renderActivePeopleTab()"
           />
         </div>
 
-        <div id="userList" class="grid"></div>
-
-        <div class="pagination">
-          <button onclick="changeUserPage(-1)">Previous</button>
-          <span id="userPageLabel">Page 1</span>
-          <button onclick="changeUserPage(1)">Next</button>
-        </div>
+        <div id="peopleRoleTitle" class="role-title">Customers</div>
+        <div id="peopleCards" class="grid"></div>
+        <div id="peopleTable" class="db-table-wrapper role-table"></div>
       </div>
 
+      <!-- DATABASE RECORDS -->
       <div class="section">
-        <h3>Review Moderation</h3>
+        <div class="section-heading">
+          <div>
+            <h3>Database Records</h3>
+            <p>Click a database table to view its full row-column data separately.</p>
+          </div>
+        </div>
+
+        <div class="role-tabs database-tabs">
+          <button type="button" id="dbTabRestaurants" class="role-tab active" onclick="switchDatabaseTab('restaurants')">
+            Restaurants
+          </button>
+          <button type="button" id="dbTabMenuItems" class="role-tab" onclick="switchDatabaseTab('menuItems')">
+            Menu Items
+          </button>
+          <button type="button" id="dbTabDeals" class="role-tab" onclick="switchDatabaseTab('deals')">
+            Promotions
+          </button>
+          <button type="button" id="dbTabOrders" class="role-tab" onclick="switchDatabaseTab('orders')">
+            Orders
+          </button>
+          <button type="button" id="dbTabCarts" class="role-tab" onclick="switchDatabaseTab('carts')">
+            Carts
+          </button>
+          <button type="button" id="dbTabReviews" class="role-tab" onclick="switchDatabaseTab('reviews')">
+            Reviews
+          </button>
+          <button type="button" id="dbTabReports" class="role-tab" onclick="switchDatabaseTab('reports')">
+            Reports
+          </button>
+        </div>
+
+        <div class="admin-controls">
+          <input
+            id="databaseSearch"
+            type="text"
+            placeholder="Search selected database table..."
+            oninput="renderActiveDatabaseTab()"
+          />
+        </div>
+
+        <div id="databaseTableTitle" class="role-title">Restaurants</div>
+        <div id="activeDatabaseTable" class="db-table-wrapper"></div>
+      </div>
+
+      <!-- REVIEW MODERATION ACTION CARDS -->
+      <div class="section">
+        <div class="section-heading">
+          <div>
+            <h3>Review Moderation</h3>
+            <p>Approve, hide, or delete customer reviews.</p>
+          </div>
+        </div>
 
         <div class="admin-controls">
           <input
@@ -63,11 +145,17 @@
         <div id="reviewList" class="grid"></div>
       </div>
 
+      <!-- REPORT ACTION CARDS -->
       <div class="section">
-        <h3>Reported Reviews</h3>
+        <div class="section-heading">
+          <div>
+            <h3>Reported Reviews</h3>
+            <p>Review fake/spam reports submitted by users.</p>
+          </div>
+        </div>
 
         <div class="admin-controls">
-          <select id="reportStatus" onchange="resetReportPageAndLoad()">
+          <select id="reportStatus" onchange="loadAdminDashboard()">
             <option value="all">All Reports</option>
             <option value="pending">Pending Reports</option>
             <option value="resolved">Resolved Reports</option>
@@ -75,72 +163,87 @@
         </div>
 
         <div id="reportList" class="grid"></div>
-
-        <div class="pagination">
-          <button onclick="changeReportPage(-1)">Previous</button>
-          <span id="reportPageLabel">Page 1</span>
-          <button onclick="changeReportPage(1)">Next</button>
-        </div>
       </div>
+
     </div>
+  </div>
 
-    <script>
-      function getAccessToken() {
-        return localStorage.getItem("token") || localStorage.getItem("access");
+  <script>
+    let dashboardData = {};
+    let activeRoleTab = "customers";
+    let activeDatabaseTab = "restaurants";
+
+    function getAccessToken() {
+      return localStorage.getItem("token") || localStorage.getItem("access");
+    }
+
+    function authHeaders(extra = {}) {
+      return {
+        ...extra,
+        Authorization: "Bearer " + getAccessToken(),
+      };
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatValue(value) {
+      if (value === true) return "Yes";
+      if (value === false) return "No";
+      if (value === null || value === undefined || value === "") return "N/A";
+
+      const text = String(value);
+
+      if (text.includes("T") && text.includes(":") && text.length >= 19) {
+        const date = new Date(text);
+        if (!Number.isNaN(date.getTime())) {
+          return date.toLocaleString();
+        }
       }
 
-      function authHeaders(extra = {}) {
-        return {
-          ...extra,
-          Authorization: "Bearer " + getAccessToken(),
-        };
-      }
+      return text;
+    }
 
-      function escapeHtml(value) {
-        return String(value ?? "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
+    function badge(value, type = "") {
+      const label = escapeHtml(formatValue(value));
+      const safeType = type ? ` badge-${type}` : "";
+      return `<span class="badge${safeType}">${label}</span>`;
+    }
 
-      if (!getAccessToken()) {
-        window.location.href = "/admin-login/";
-      }
+    function statusBadge(user) {
+      if (user.is_banned) return badge("Banned", "danger");
+      if (user.is_active) return badge("Active", "success");
+      return badge("Disabled", "warning");
+    }
 
-      if (localStorage.getItem("role") !== "admin") {
-        alert("Access denied. Admins only.");
-        window.location.href = "/admin-login/";
-      }
+    if (!getAccessToken()) {
+      window.location.href = "/admin-login/";
+    }
 
-      let userPage = 1;
-      let reportPage = 1;
-      let pageSize = 6;
-      let userTotal = 0;
-      let reportTotal = 0;
+    if (localStorage.getItem("role") !== "admin") {
+      alert("Access denied. Admins only.");
+      window.location.href = "/admin-login/";
+    }
 
-      async function loadAdminDashboard() {
-        const userSearch = document.getElementById("userSearch")?.value || "";
-        const reviewSearch =
-          document.getElementById("reviewSearch")?.value || "";
-        const reportStatus =
-          document.getElementById("reportStatus")?.value || "all";
+    async function loadAdminDashboard() {
+      const reviewSearch = document.getElementById("reviewSearch")?.value || "";
+      const reportStatus = document.getElementById("reportStatus")?.value || "all";
 
-        const params = new URLSearchParams({
-          user_search: userSearch,
-          review_search: reviewSearch,
-          report_status: reportStatus,
-          user_page: userPage,
-          report_page: reportPage,
+      const params = new URLSearchParams({
+        review_search: reviewSearch,
+        report_status: reportStatus,
+      });
+
+      try {
+        const response = await fetch(`/api/admin/dashboard/?${params.toString()}`, {
+          headers: authHeaders(),
         });
-
-        const response = await fetch(
-          `/api/admin/dashboard/?${params.toString()}`,
-          {
-            headers: authHeaders(),
-          },
-        );
 
         const data = await response.json();
 
@@ -149,276 +252,655 @@
           return;
         }
 
-        renderUsers(data.users || []);
-        renderReviews(data.reviews || []);
-        renderReports(data.reports || []);
+        dashboardData = normalizeDashboardData(data);
 
-        userTotal = data.pagination?.user_total || 0;
-        reportTotal = data.pagination?.report_total || 0;
-        pageSize = data.pagination?.page_size || 6;
+        renderDatabaseSummary(dashboardData.summary || {});
+        renderActivePeopleTab();
+        renderActiveDatabaseTab();
+        renderReviews(dashboardData.reviews || []);
+        renderReports(dashboardData.reports || []);
+      } catch (error) {
+        alert("Server communication error while loading admin dashboard.");
+      }
+    }
 
-        document.getElementById("userPageLabel").innerText = `Page ${userPage}`;
-        document.getElementById("reportPageLabel").innerText =
-          `Page ${reportPage}`;
+    function normalizeDashboardData(data) {
+      const allUsers = data.users || [];
+
+      const customers =
+        data.customers && data.customers.length
+          ? data.customers
+          : allUsers.filter((user) => user.role === "customer");
+
+      const businessOwners =
+        data.business_owners && data.business_owners.length
+          ? data.business_owners
+          : allUsers.filter((user) => user.role === "business_owner");
+
+      const riderUsers = allUsers.filter((user) => user.role === "rider");
+
+      const riders =
+        data.riders && data.riders.length
+          ? data.riders.map((rider) => ({
+              id: rider.id,
+              name: rider.name,
+              email: rider.email,
+              role: "rider",
+              phone: rider.phone,
+              vehicle_type: rider.vehicle_type,
+              is_available: rider.is_available,
+              is_active: rider.is_active ?? true,
+              is_banned: rider.is_banned ?? false,
+            }))
+          : riderUsers;
+
+      const summary = {
+        total_users: data.summary?.total_users ?? allUsers.length,
+        total_customers: data.summary?.total_customers ?? customers.length,
+        total_business_owners: data.summary?.total_business_owners ?? businessOwners.length,
+        total_admins: data.summary?.total_admins ?? allUsers.filter((user) => user.role === "admin").length,
+        total_riders: data.summary?.total_riders ?? riders.length,
+        total_restaurants: data.summary?.total_restaurants ?? (data.restaurants || []).length,
+        total_menu_items: data.summary?.total_menu_items ?? (data.menu_items || []).length,
+        total_deals: data.summary?.total_deals ?? (data.deals || []).length,
+        total_orders: data.summary?.total_orders ?? (data.orders || []).length,
+        total_carts: data.summary?.total_carts ?? (data.carts || []).length,
+        total_reviews: data.summary?.total_reviews ?? (data.reviews || []).length,
+        total_reports: data.summary?.total_reports ?? (data.reports || []).length,
+      };
+
+      return {
+        ...data,
+        users: allUsers,
+        customers,
+        business_owners: businessOwners,
+        riders,
+        summary,
+      };
+    }
+
+    function switchRoleTab(tabName) {
+      activeRoleTab = tabName;
+
+      document.querySelectorAll("#tabCustomers, #tabOwners, #tabRiders, #tabAllUsers").forEach((button) => {
+        button.classList.remove("active");
+      });
+
+      const activeButton = {
+        customers: "tabCustomers",
+        owners: "tabOwners",
+        riders: "tabRiders",
+        allUsers: "tabAllUsers",
+      }[tabName];
+
+      document.getElementById(activeButton)?.classList.add("active");
+      document.getElementById("peopleSearch").value = "";
+      renderActivePeopleTab();
+    }
+
+    function switchDatabaseTab(tabName) {
+      activeDatabaseTab = tabName;
+
+      document.querySelectorAll("#dbTabRestaurants, #dbTabMenuItems, #dbTabDeals, #dbTabOrders, #dbTabCarts, #dbTabReviews, #dbTabReports").forEach((button) => {
+        button.classList.remove("active");
+      });
+
+      const activeButton = {
+        restaurants: "dbTabRestaurants",
+        menuItems: "dbTabMenuItems",
+        deals: "dbTabDeals",
+        orders: "dbTabOrders",
+        carts: "dbTabCarts",
+        reviews: "dbTabReviews",
+        reports: "dbTabReports",
+      }[tabName];
+
+      document.getElementById(activeButton)?.classList.add("active");
+      document.getElementById("databaseSearch").value = "";
+      renderActiveDatabaseTab();
+    }
+
+    function getActiveRoleRecords() {
+      if (activeRoleTab === "customers") {
+        return {
+          title: "Customers",
+          rows: dashboardData.customers || [],
+          columns: [
+            { key: "id", label: "ID" },
+            { key: "name", label: "Customer Name" },
+            { key: "email", label: "Email" },
+            { key: "username", label: "Username" },
+            { key: "is_active", label: "Active", type: "badge" },
+            { key: "is_banned", label: "Banned", type: "badge" },
+            { key: "last_login", label: "Last Login" },
+            { key: "date_joined", label: "Joined" },
+          ],
+        };
       }
 
-      function renderUsers(users) {
-        const list = document.getElementById("userList");
-        list.innerHTML = "";
-
-        if (!users.length) {
-          list.innerHTML = `<div class="card"><p>No users found.</p></div>`;
-          return;
-        }
-
-        users.forEach((user) => {
-          list.innerHTML += `
-      <div class="card ${user.is_banned ? "banned" : ""}">
-        <h4>${escapeHtml(user.name || user.username)}</h4>
-        <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
-        <p><strong>Role:</strong> ${escapeHtml(user.role)}</p>
-        <p><strong>Status:</strong> ${user.is_banned ? "Banned" : user.is_active ? "Active" : "Disabled"}</p>
-        <p><strong>Last Login:</strong> ${user.last_login ? new Date(user.last_login).toLocaleString() : "Never"}</p>
-
-        <button 
-          onclick="toggleUserStatus(${user.id}, ${!user.is_active})"
-          ${user.is_banned ? "disabled" : ""}
-        >
-          ${user.is_active ? "Disable" : "Enable"}
-        </button>
-
-        ${
-          user.is_banned
-            ? `<button class="danger-btn" onclick="unbanUser(${user.id})">Unban User</button>`
-            : `<button class="danger-btn" onclick="banUser(${user.id})">Ban User</button>`
-        }
-      </div>
-    `;
-        });
+      if (activeRoleTab === "owners") {
+        return {
+          title: "Business Owners",
+          rows: dashboardData.business_owners || [],
+          columns: [
+            { key: "id", label: "ID" },
+            { key: "name", label: "Owner Name" },
+            { key: "email", label: "Email" },
+            { key: "username", label: "Username" },
+            { key: "is_active", label: "Active", type: "badge" },
+            { key: "is_banned", label: "Banned", type: "badge" },
+            { key: "last_login", label: "Last Login" },
+            { key: "date_joined", label: "Joined" },
+          ],
+        };
       }
 
-      function renderReviews(reviews) {
-        const list = document.getElementById("reviewList");
-        list.innerHTML = "";
-
-        if (!reviews.length) {
-          list.innerHTML = `<div class="card"><p>No reviews found.</p></div>`;
-          return;
-        }
-
-        reviews.forEach((review) => {
-          list.innerHTML += `
-      <div class="card">
-        <h4>${escapeHtml(review.restaurant_name)}</h4>
-        <p><strong>Customer:</strong> ${escapeHtml(review.customer_name)}</p>
-        <p><strong>Rating:</strong> ${review.rating}/5</p>
-        <p><strong>Comment:</strong> ${escapeHtml(review.comment || "No comment")}</p>
-        <p><strong>Status:</strong> ${review.is_approved ? "Approved" : "Hidden"}</p>
-        <p><strong>Reports:</strong> ${review.report_count}</p>
-
-        <div class="review-actions">
-          <button onclick="toggleReviewStatus(${review.id}, ${!review.is_approved})">
-            ${review.is_approved ? "Hide Review" : "Approve Review"}
-          </button>
-
-          <button class="danger-btn" onclick="deleteReview(${review.id})">
-            Delete Review
-          </button>
-        </div>
-      </div>
-    `;
-        });
+      if (activeRoleTab === "riders") {
+        return {
+          title: "Riders",
+          rows: dashboardData.riders || [],
+          columns: [
+            { key: "id", label: "ID" },
+            { key: "name", label: "Rider Name" },
+            { key: "email", label: "Email" },
+            { key: "phone", label: "Phone" },
+            { key: "vehicle_type", label: "Vehicle" },
+            { key: "is_available", label: "Available", type: "badge" },
+          ],
+        };
       }
 
-      function renderReports(reports) {
-        const list = document.getElementById("reportList");
-        list.innerHTML = "";
+      return {
+        title: "All Users",
+        rows: dashboardData.users || [],
+        columns: [
+          { key: "id", label: "ID" },
+          { key: "name", label: "Name" },
+          { key: "email", label: "Email" },
+          { key: "username", label: "Username" },
+          { key: "role", label: "Role" },
+          { key: "is_active", label: "Active", type: "badge" },
+          { key: "is_banned", label: "Banned", type: "badge" },
+          { key: "last_login", label: "Last Login" },
+        ],
+      };
+    }
 
-        if (!reports.length) {
-          list.innerHTML = `<div class="card"><p>No reports found.</p></div>`;
-          return;
-        }
-
-        reports.forEach((report) => {
-          list.innerHTML += `
-      <div class="card">
-        <h4>Report #${report.id}</h4>
-        <p><strong>Restaurant:</strong> ${escapeHtml(report.restaurant_name)}</p>
-        <p><strong>Reported By:</strong> ${escapeHtml(report.reported_by)}</p>
-        <p><strong>Reason:</strong> ${escapeHtml(report.reason)}</p>
-        <p><strong>Review:</strong> ${escapeHtml(report.review_comment || "No comment")}</p>
-        <p><strong>Status:</strong> ${report.resolved ? "Resolved" : "Pending"}</p>
-
-        ${
-          !report.resolved
-            ? `
-          <button onclick="resolveReport(${report.id})">
-            Mark Resolved
-          </button>
-        `
-            : ""
-        }
-      </div>
-    `;
-        });
+    function getActiveDatabaseRecords() {
+      if (activeDatabaseTab === "restaurants") {
+        return {
+          title: "Restaurants",
+          rows: dashboardData.restaurants || [],
+          columns: [
+            { key: "id", label: "ID" },
+            { key: "name", label: "Restaurant" },
+            { key: "owner", label: "Owner" },
+            { key: "owner_email", label: "Owner Email" },
+            { key: "category", label: "Category" },
+            { key: "price_range", label: "Price" },
+            { key: "average_rating", label: "Rating" },
+            { key: "delivery_available", label: "Delivery", type: "badge" },
+            { key: "address", label: "Address" },
+          ],
+        };
       }
 
-      async function toggleUserStatus(userId, isActive) {
-        await fetch(`/api/admin/users/${userId}/status/`, {
-          method: "PUT",
-          headers: authHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ is_active: isActive }),
-        });
+      if (activeDatabaseTab === "menuItems") {
+        return {
+          title: "Menu Items",
+          rows: dashboardData.menu_items || [],
+          columns: [
+            { key: "id", label: "ID" },
+            { key: "name", label: "Item Name" },
+            { key: "restaurant", label: "Restaurant" },
+            { key: "price", label: "Price" },
+            { key: "available", label: "Available", type: "badge" },
+            { key: "created_at", label: "Created" },
+          ],
+        };
+      }
 
+      if (activeDatabaseTab === "deals") {
+        return {
+          title: "Promotions",
+          rows: dashboardData.deals || [],
+          columns: [
+            { key: "id", label: "ID" },
+            { key: "title", label: "Title" },
+            { key: "restaurant", label: "Restaurant" },
+            { key: "discount_type", label: "Type" },
+            { key: "discount_value", label: "Value" },
+            { key: "minimum_order_amount", label: "Minimum Order" },
+            { key: "active_status", label: "Active", type: "badge" },
+          ],
+        };
+      }
+
+      if (activeDatabaseTab === "orders") {
+        return {
+          title: "Orders",
+          rows: dashboardData.orders || [],
+          columns: [
+            { key: "id", label: "Order ID" },
+            { key: "customer", label: "Customer" },
+            { key: "customer_email", label: "Customer Email" },
+            { key: "restaurant", label: "Restaurant" },
+            { key: "rider", label: "Rider" },
+            { key: "status", label: "Status" },
+            { key: "payment_method", label: "Payment" },
+            { key: "total_amount", label: "Total" },
+            { key: "created_at", label: "Created" },
+          ],
+        };
+      }
+
+      if (activeDatabaseTab === "carts") {
+        return {
+          title: "Carts",
+          rows: dashboardData.carts || [],
+          columns: [
+            { key: "id", label: "Cart ID" },
+            { key: "user", label: "User" },
+            { key: "email", label: "Email" },
+            { key: "total_items", label: "Items" },
+            { key: "total_price", label: "Total Price" },
+            { key: "updated_at", label: "Updated" },
+          ],
+        };
+      }
+
+      if (activeDatabaseTab === "reviews") {
+        return {
+          title: "Reviews",
+          rows: dashboardData.reviews || [],
+          columns: [
+            { key: "id", label: "Review ID" },
+            { key: "restaurant_name", label: "Restaurant" },
+            { key: "customer_name", label: "Customer" },
+            { key: "customer_email", label: "Customer Email" },
+            { key: "rating", label: "Rating" },
+            { key: "comment", label: "Comment" },
+            { key: "is_approved", label: "Approved", type: "badge" },
+            { key: "report_count", label: "Reports" },
+          ],
+        };
+      }
+
+      return {
+        title: "Reports",
+        rows: dashboardData.reports || [],
+        columns: [
+          { key: "id", label: "Report ID" },
+          { key: "review_id", label: "Review ID" },
+          { key: "restaurant_name", label: "Restaurant" },
+          { key: "reported_by", label: "Reported By" },
+          { key: "reason", label: "Reason" },
+          { key: "resolved", label: "Resolved", type: "badge" },
+          { key: "created_at", label: "Created" },
+        ],
+      };
+    }
+
+    function filterRows(rows, search) {
+      if (!search) return rows;
+
+      return rows.filter((row) => {
+        const combined = Object.values(row || {}).join(" ").toLowerCase();
+        return combined.includes(search);
+      });
+    }
+
+    function renderActivePeopleTab() {
+      const config = getActiveRoleRecords();
+      const search = (document.getElementById("peopleSearch")?.value || "").toLowerCase().trim();
+      const rows = filterRows(config.rows || [], search);
+
+      document.getElementById("peopleRoleTitle").innerText = `${config.title} (${rows.length})`;
+
+      renderPeopleCards(rows, config.title);
+      renderSimpleTable("peopleTable", config.columns, rows);
+    }
+
+    function renderActiveDatabaseTab() {
+      const config = getActiveDatabaseRecords();
+      const search = (document.getElementById("databaseSearch")?.value || "").toLowerCase().trim();
+      const rows = filterRows(config.rows || [], search);
+
+      document.getElementById("databaseTableTitle").innerText = `${config.title} Table (${rows.length})`;
+      renderSimpleTable("activeDatabaseTable", config.columns, rows);
+    }
+
+    function renderPeopleCards(rows, title) {
+      const container = document.getElementById("peopleCards");
+      container.innerHTML = "";
+
+      if (!rows.length) {
+        container.innerHTML = `<div class="empty-card">No ${escapeHtml(title.toLowerCase())} found.</div>`;
+        return;
+      }
+
+      rows.forEach((person) => {
+        const roleLabel = person.role || (activeRoleTab === "riders" ? "rider" : "");
+
+        container.innerHTML += `
+          <div class="card ${person.is_banned ? "banned" : ""}">
+            <div class="card-top">
+              <h4>${escapeHtml(person.name || person.username || "Unnamed")}</h4>
+              ${
+                activeRoleTab === "riders" && person.is_available !== undefined
+                  ? badge(person.is_available ? "Available" : "Unavailable", person.is_available ? "success" : "warning")
+                  : statusBadge(person)
+              }
+            </div>
+
+            <p><strong>Email:</strong> ${escapeHtml(formatValue(person.email))}</p>
+            ${roleLabel ? `<p><strong>Role:</strong> ${escapeHtml(roleLabel)}</p>` : ""}
+            ${person.phone !== undefined ? `<p><strong>Phone:</strong> ${escapeHtml(formatValue(person.phone))}</p>` : ""}
+            ${person.vehicle_type !== undefined ? `<p><strong>Vehicle:</strong> ${escapeHtml(formatValue(person.vehicle_type))}</p>` : ""}
+            ${person.last_login !== undefined ? `<p><strong>Last Login:</strong> ${escapeHtml(formatValue(person.last_login || "Never"))}</p>` : ""}
+
+            ${
+              person.role && person.id
+                ? `
+                  <div class="card-actions">
+                    <button
+                      type="button"
+                      onclick="toggleUserStatus(${person.id}, ${!person.is_active})"
+                      ${person.is_banned ? "disabled" : ""}
+                    >
+                      ${person.is_active ? "Disable" : "Enable"}
+                    </button>
+
+                    ${
+                      person.is_banned
+                        ? `<button type="button" class="danger-btn" onclick="unbanUser(${person.id})">Unban</button>`
+                        : `<button type="button" class="danger-btn" onclick="banUser(${person.id})">Ban</button>`
+                    }
+                  </div>
+                `
+                : ""
+            }
+          </div>
+        `;
+      });
+    }
+
+    function renderDatabaseSummary(summary = {}) {
+      const box = document.getElementById("databaseSummary");
+      if (!box) return;
+
+      const items = [
+        ["Total Users", summary.total_users],
+        ["Customers", summary.total_customers],
+        ["Business Owners", summary.total_business_owners],
+        ["Admins", summary.total_admins],
+        ["Riders", summary.total_riders],
+        ["Restaurants", summary.total_restaurants],
+        ["Menu Items", summary.total_menu_items],
+        ["Promotions", summary.total_deals],
+        ["Orders", summary.total_orders],
+        ["Carts", summary.total_carts],
+        ["Reviews", summary.total_reviews],
+        ["Reports", summary.total_reports],
+      ];
+
+      const maxValue = Math.max(...items.map((item) => Number(item[1] || 0)), 1);
+
+      const rowsHtml = items.map(([label, value]) => {
+        const numberValue = Number(value || 0);
+        const width = Math.max(4, Math.round((numberValue / maxValue) * 100));
+
+        return `
+          <tr>
+            <td class="overview-name">${escapeHtml(label)}</td>
+            <td class="overview-count">${escapeHtml(numberValue)}</td>
+            <td class="overview-bar-cell">
+              <div class="overview-bar-track">
+                <div class="overview-bar-fill" style="width:${width}%"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      box.innerHTML = `
+        <table class="overview-chart">
+          <thead>
+            <tr>
+              <th>Database Table / Category</th>
+              <th>Total Records</th>
+              <th>Record Chart</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderSimpleTable(containerId, columns, rows) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      if (!rows || !rows.length) {
+        container.innerHTML = `<div class="table-empty">No records found.</div>`;
+        return;
+      }
+
+      const headerHtml = columns
+        .map((col) => `<th>${escapeHtml(col.label)}</th>`)
+        .join("");
+
+      const bodyHtml = rows
+        .map((row) => {
+          const cells = columns
+            .map((col) => {
+              const value = row[col.key];
+
+              if (col.type === "badge") {
+                const badgeType =
+                  value === true || value === "Yes" || value === "Active"
+                    ? "success"
+                    : "warning";
+
+                return `<td>${badge(formatValue(value), badgeType)}</td>`;
+              }
+
+              return `<td>${escapeHtml(formatValue(value))}</td>`;
+            })
+            .join("");
+
+          return `<tr>${cells}</tr>`;
+        })
+        .join("");
+
+      container.innerHTML = `
+        <table class="db-table">
+          <thead>
+            <tr>${headerHtml}</tr>
+          </thead>
+          <tbody>${bodyHtml}</tbody>
+        </table>
+      `;
+    }
+
+    function renderReviews(reviews) {
+      const list = document.getElementById("reviewList");
+      list.innerHTML = "";
+
+      if (!reviews.length) {
+        list.innerHTML = `<div class="empty-card">No reviews found.</div>`;
+        return;
+      }
+
+      reviews.forEach((review) => {
+        list.innerHTML += `
+          <div class="card">
+            <div class="card-top">
+              <h4>${escapeHtml(review.restaurant_name)}</h4>
+              ${badge(review.is_approved ? "Approved" : "Hidden", review.is_approved ? "success" : "warning")}
+            </div>
+
+            <p><strong>Customer:</strong> ${escapeHtml(review.customer_name)}</p>
+            <p><strong>Rating:</strong> ${escapeHtml(review.rating)}/5</p>
+            <p><strong>Comment:</strong> ${escapeHtml(review.comment || "No comment")}</p>
+            <p><strong>Reports:</strong> ${escapeHtml(review.report_count ?? 0)}</p>
+
+            <div class="card-actions">
+              <button type="button" onclick="toggleReviewStatus(${review.id}, ${!review.is_approved})">
+                ${review.is_approved ? "Hide Review" : "Approve Review"}
+              </button>
+
+              <button type="button" class="danger-btn" onclick="deleteReview(${review.id})">
+                Delete
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderReports(reports) {
+      const list = document.getElementById("reportList");
+      list.innerHTML = "";
+
+      if (!reports.length) {
+        list.innerHTML = `<div class="empty-card">No reports found.</div>`;
+        return;
+      }
+
+      reports.forEach((report) => {
+        list.innerHTML += `
+          <div class="card">
+            <div class="card-top">
+              <h4>Report #${escapeHtml(report.id)}</h4>
+              ${badge(report.resolved ? "Resolved" : "Pending", report.resolved ? "success" : "warning")}
+            </div>
+
+            <p><strong>Restaurant:</strong> ${escapeHtml(report.restaurant_name)}</p>
+            <p><strong>Reported By:</strong> ${escapeHtml(report.reported_by)}</p>
+            <p><strong>Reason:</strong> ${escapeHtml(report.reason)}</p>
+            <p><strong>Review:</strong> ${escapeHtml(report.review_comment || "No comment")}</p>
+
+            ${
+              !report.resolved
+                ? `<div class="card-actions"><button type="button" onclick="resolveReport(${report.id})">Mark Resolved</button></div>`
+                : ""
+            }
+          </div>
+        `;
+      });
+    }
+
+    async function toggleUserStatus(userId, isActive) {
+      const response = await fetch(`/api/admin/users/${userId}/status/`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ is_active: isActive }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
         loadAdminDashboard();
+      } else {
+        alert(data.error || "Failed to update user status.");
       }
+    }
 
-      async function toggleReviewStatus(reviewId, isApproved) {
-        const response = await fetch(`/api/admin/reviews/${reviewId}/status/`, {
-          method: "PUT",
-          headers: authHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ is_approved: isApproved }),
-        });
+    async function toggleReviewStatus(reviewId, isApproved) {
+      const response = await fetch(`/api/admin/reviews/${reviewId}/status/`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ is_approved: isApproved }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (response.ok) {
-          loadAdminDashboard();
-        } else {
-          alert(data.error || "Failed to update review status.");
-        }
-      }
-
-      async function deleteReview(reviewId) {
-        if (
-          !confirm("Are you sure you want to permanently delete this review?")
-        )
-          return;
-
-        const response = await fetch(`/api/admin/reviews/${reviewId}/delete/`, {
-          method: "DELETE",
-          headers: authHeaders(),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          alert("Review deleted successfully.");
-          loadAdminDashboard();
-        } else {
-          alert(data.error || "Failed to delete review.");
-        }
-      }
-
-      async function resolveReport(reportId) {
-        const response = await fetch(
-          `/api/admin/reports/${reportId}/resolve/`,
-          {
-            method: "PUT",
-            headers: authHeaders(),
-          },
-        );
-
-        const data = await response.json();
-
-        if (response.ok) {
-          alert("Report resolved successfully.");
-          loadAdminDashboard();
-        } else {
-          alert(data.error || "Failed to resolve report.");
-        }
-      }
-
-      async function banUser(userId) {
-        if (!confirm("Ban this user and hide all of their reviews?")) return;
-
-        const response = await fetch(`/api/admin/users/${userId}/ban/`, {
-          method: "PUT",
-          headers: authHeaders(),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          alert("User banned successfully.");
-          loadAdminDashboard();
-        } else {
-          alert(data.error || "Failed to ban user.");
-        }
-      }
-
-      async function unbanUser(userId) {
-        if (!confirm("Unban this user and reactivate their account?")) return;
-
-        const response = await fetch(`/api/admin/users/${userId}/unban/`, {
-          method: "PUT",
-          headers: authHeaders(),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          alert("User unbanned successfully.");
-          loadAdminDashboard();
-        } else {
-          alert(data.error || "Failed to unban user.");
-        }
-      }
-
-      async function processInactiveUsers() {
-        if (
-          !confirm(
-            "Warn users inactive for almost 1 year and disable users inactive for over 1 year?",
-          )
-        ) {
-          return;
-        }
-
-        const response = await fetch("/api/admin/users/process-inactive/", {
-          method: "POST",
-          headers: authHeaders(),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          alert(
-            `Done. Warned: ${data.warned_count}, Disabled: ${data.disabled_count}`,
-          );
-          loadAdminDashboard();
-        } else {
-          alert(data.error || "Failed to process inactive users.");
-        }
-      }
-
-      function resetUserPageAndLoad() {
-        userPage = 1;
+      if (response.ok) {
         loadAdminDashboard();
+      } else {
+        alert(data.error || "Failed to update review status.");
       }
+    }
 
-      function resetReportPageAndLoad() {
-        reportPage = 1;
+    async function deleteReview(reviewId) {
+      if (!confirm("Are you sure you want to permanently delete this review?")) return;
+
+      const response = await fetch(`/api/admin/reviews/${reviewId}/delete/`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Review deleted successfully.");
         loadAdminDashboard();
+      } else {
+        alert(data.error || "Failed to delete review.");
       }
+    }
 
-      function changeUserPage(direction) {
-        const maxPage = Math.ceil(userTotal / pageSize) || 1;
-        userPage = Math.max(1, Math.min(maxPage, userPage + direction));
+    async function resolveReport(reportId) {
+      const response = await fetch(`/api/admin/reports/${reportId}/resolve/`, {
+        method: "PUT",
+        headers: authHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Report resolved successfully.");
         loadAdminDashboard();
+      } else {
+        alert(data.error || "Failed to resolve report.");
       }
+    }
 
-      function changeReportPage(direction) {
-        const maxPage = Math.ceil(reportTotal / pageSize) || 1;
-        reportPage = Math.max(1, Math.min(maxPage, reportPage + direction));
+    async function banUser(userId) {
+      if (!confirm("Ban this user and hide all of their reviews?")) return;
+
+      const response = await fetch(`/api/admin/users/${userId}/ban/`, {
+        method: "PUT",
+        headers: authHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("User banned successfully.");
         loadAdminDashboard();
+      } else {
+        alert(data.error || "Failed to ban user.");
       }
+    }
 
-      function logout() {
-        localStorage.clear();
-        window.location.href = "/admin-login/";
+    async function unbanUser(userId) {
+      if (!confirm("Unban this user and reactivate their account?")) return;
+
+      const response = await fetch(`/api/admin/users/${userId}/unban/`, {
+        method: "PUT",
+        headers: authHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("User unbanned successfully.");
+        loadAdminDashboard();
+      } else {
+        alert(data.error || "Failed to unban user.");
       }
+    }
 
-      loadAdminDashboard();
-    </script>
-  </body>
+    function logout() {
+      localStorage.clear();
+      window.location.href = "/admin-login/";
+    }
+
+    loadAdminDashboard();
+  </script>
+</body>
 </html>
