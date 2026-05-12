@@ -18,6 +18,11 @@ urlpatterns = [
     path("api/business-dashboard/", views.business_dashboard_data),
     path("api/business-reviews/", views.business_reviews),
     path("api/add-restaurant/", views.add_restaurant),
+	# ================= PROMOTIONS =================
+    path("api/business-promotions/", views.business_promotions),
+    path("api/promotions/add/", views.add_promotion),
+    path("api/promotions/<int:deal_id>/update/", views.update_promotion),
+    path("api/promotions/<int:deal_id>/delete/", views.delete_promotion),
 
     path("api/restaurants/<int:restaurant_id>/menu/", views.restaurant_menu_items),
     path("api/restaurants/<int:restaurant_id>/menu/add/", views.add_menu_item),
