@@ -31,9 +31,11 @@ from .models import (
     OrderItem,
     Preference,
     Restaurant,
+    RestaurantBranch,
     Review,
     ReviewReport,
     UserProfile,
+    Rider,
 )
 from .serializers import (
     CartSerializer,
@@ -42,6 +44,7 @@ from .serializers import (
     OrderSerializer,
     RegisterSerializer,
     RestaurantSerializer,
+    RestaurantBranchSerializer,
     ReviewSerializer,
 )
 
@@ -304,7 +307,8 @@ def add_menu_item(request, restaurant_id):
             {"error": "Restaurant not found or access denied."},
             status=status.HTTP_404_NOT_FOUND,
         )
-
+    
+    
     serializer = MenuItemSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save(restaurant=restaurant)
@@ -327,15 +331,46 @@ def update_menu_item(request, item_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    serializer = MenuItemSerializer(item, data=request.data, partial=True)
+    data = request.data.copy()
+
+    branch_id = data.get("branch", "")
+    branch = None
+
+    if branch_id:
+        try:
+            branch = RestaurantBranch.objects.get(
+                id=branch_id,
+                restaurant=item.restaurant,
+            )
+        except RestaurantBranch.DoesNotExist:
+            return Response(
+                {"error": "Selected branch does not belong to this restaurant."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    data["branch"] = branch.id if branch else None
+
+    preference_tags = data.get("preference_tags", [])
+
+    if isinstance(preference_tags, str):
+        import json
+        try:
+            preference_tags = json.loads(preference_tags)
+        except json.JSONDecodeError:
+            preference_tags = []
+
+    data["preference_tags"] = preference_tags
+
+    serializer = MenuItemSerializer(item, data=data, partial=True)
+
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(branch=branch)
         return Response(
-            {"message": "Menu item updated successfully"}, status=status.HTTP_200_OK
+            {"message": "Menu item updated successfully"},
+            status=status.HTTP_200_OK,
         )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
@@ -351,6 +386,223 @@ def delete_menu_item(request, item_id):
     item.delete()
     return Response(
         {"message": "Menu item deleted successfully"}, status=status.HTTP_200_OK
+    )
+# =========================
+# BRANCH MANAGEMENT
+# =========================
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def restaurant_branches(request, restaurant_id):
+    try:
+        restaurant = Restaurant.objects.get(id=restaurant_id, owner=request.user)
+    except Restaurant.DoesNotExist:
+        return Response(
+            {"error": "Restaurant not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    branches = RestaurantBranch.objects.filter(restaurant=restaurant).order_by("id")
+    serializer = RestaurantBranchSerializer(branches, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_branch(request, restaurant_id):
+    try:
+        restaurant = Restaurant.objects.get(id=restaurant_id, owner=request.user)
+    except Restaurant.DoesNotExist:
+        return Response(
+            {"error": "Restaurant not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    name = request.data.get("name", "").strip()
+    address = request.data.get("address", "").strip()
+    phone = request.data.get("phone", "").strip()
+    latitude = request.data.get("latitude") or 23.8103
+    longitude = request.data.get("longitude") or 90.4125
+    is_active = request.data.get("is_active", True)
+
+    if isinstance(is_active, str):
+        is_active = is_active.lower() == "true"
+
+    if not name:
+        return Response({"error": "Branch name is required."}, status=400)
+
+    if not address:
+        return Response({"error": "Branch address is required."}, status=400)
+
+    branch = RestaurantBranch.objects.create(
+        restaurant=restaurant,
+        name=name,
+        address=address,
+        phone=phone,
+        latitude=latitude,
+        longitude=longitude,
+        is_active=is_active,
+    )
+
+    return Response(
+        {
+            "message": "Branch added successfully.",
+            "branch": RestaurantBranchSerializer(branch).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_branch(request, branch_id):
+    try:
+        branch = RestaurantBranch.objects.get(
+            id=branch_id,
+            restaurant__owner=request.user
+        )
+    except RestaurantBranch.DoesNotExist:
+        return Response(
+            {"error": "Branch not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = RestaurantBranchSerializer(branch, data=request.data, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Branch updated successfully.", "branch": serializer.data},
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_branch(request, branch_id):
+    try:
+        branch = RestaurantBranch.objects.get(
+            id=branch_id,
+            restaurant__owner=request.user
+        )
+    except RestaurantBranch.DoesNotExist:
+        return Response(
+            {"error": "Branch not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    branch.delete()
+    return Response(
+        {"message": "Branch deleted successfully."},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def branch_menu_items(request, branch_id):
+    try:
+        branch = RestaurantBranch.objects.get(
+            id=branch_id,
+            restaurant__owner=request.user
+        )
+    except RestaurantBranch.DoesNotExist:
+        return Response(
+            {"error": "Branch not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    items = MenuItem.objects.filter(branch=branch).order_by("name")
+    serializer = MenuItemSerializer(items, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def add_branch_menu_item(request, branch_id):
+    try:
+        branch = RestaurantBranch.objects.get(
+            id=branch_id,
+            restaurant__owner=request.user
+        )
+    except RestaurantBranch.DoesNotExist:
+        return Response(
+            {"error": "Branch not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    data = request.data.copy()
+
+    serializer = MenuItemSerializer(data=data)
+
+    if serializer.is_valid():
+        serializer.save(
+            restaurant=branch.restaurant,
+            branch=branch,
+        )
+        return Response(
+            {"message": "Branch menu item added successfully."},
+            status=status.HTTP_201_CREATED,
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def customer_restaurant_branches(request, restaurant_id):
+    try:
+        restaurant = Restaurant.objects.get(id=restaurant_id)
+    except Restaurant.DoesNotExist:
+        return Response(
+            {"error": "Restaurant not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    branches = RestaurantBranch.objects.filter(
+        restaurant=restaurant,
+        is_active=True,
+    ).order_by("name")
+
+    serializer = RestaurantBranchSerializer(branches, many=True)
+
+    return Response(
+        {
+            "restaurant_id": restaurant.id,
+            "restaurant_name": restaurant.name,
+            "branches": serializer.data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def customer_branch_menu_items(request, branch_id):
+    try:
+        branch = RestaurantBranch.objects.get(id=branch_id, is_active=True)
+    except RestaurantBranch.DoesNotExist:
+        return Response(
+            {"error": "Branch not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    items = MenuItem.objects.filter(
+        branch=branch,
+        available=True,
+    ).order_by("name")
+
+    serializer = MenuItemSerializer(items, many=True)
+
+    return Response(
+        {
+            "restaurant_id": branch.restaurant.id,
+            "restaurant_name": branch.restaurant.name,
+            "branch_id": branch.id,
+            "branch_name": branch.name,
+            "items": serializer.data,
+        },
+        status=status.HTTP_200_OK,
     )
 
 
@@ -976,9 +1228,35 @@ def admin_dashboard_data(request):
             | models.Q(first_name__icontains=user_search)
         )
 
-    reviews = Review.objects.select_related("user", "restaurant").order_by(
-        "-created_at"
-    )
+    restaurants = Restaurant.objects.select_related("owner").all().order_by("id")
+
+    branches = RestaurantBranch.objects.select_related(
+        "restaurant",
+        "restaurant__owner",
+    ).all().order_by("id")
+
+    menu_items = MenuItem.objects.select_related(
+        "restaurant",
+        "branch",
+    ).all().order_by("id")
+
+    deals = Deal.objects.select_related(
+        "restaurant",
+        "branch",
+    ).all().order_by("id")
+
+    orders = Order.objects.select_related(
+        "customer",
+        "restaurant",
+        "rider",
+        "rider__user",
+    ).all().order_by("-created_at")
+
+    reviews = Review.objects.select_related(
+        "user",
+        "restaurant",
+        "order",
+    ).order_by("-created_at")
 
     if review_search:
         reviews = reviews.filter(
@@ -990,7 +1268,9 @@ def admin_dashboard_data(request):
         )
 
     reports = ReviewReport.objects.select_related(
-        "review", "review__restaurant", "reported_by"
+        "review",
+        "review__restaurant",
+        "reported_by",
     ).order_by("-created_at")
 
     if report_status == "pending":
@@ -999,6 +1279,11 @@ def admin_dashboard_data(request):
         reports = reports.filter(resolved=True)
 
     user_data = []
+    customer_data = []
+    business_owner_data = []
+    admin_data = []
+    rider_user_data = []
+
     for user in users:
         try:
             role = user.userprofile.role
@@ -1007,53 +1292,176 @@ def admin_dashboard_data(request):
             role = "customer"
             is_banned = False
 
-        user_data.append(
-            {
-                "id": user.id,
-                "name": user.first_name or user.username,
-                "email": user.email or user.username,
-                "username": user.username,
-                "role": role,
-                "is_active": user.is_active,
-                "is_banned": is_banned, 
-                "last_login": user.last_login,
-            }
-        )
+        item = {
+            "id": user.id,
+            "name": user.first_name or user.username,
+            "email": user.email or user.username,
+            "username": user.username,
+            "role": role,
+            "is_active": user.is_active,
+            "is_banned": is_banned,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser,
+            "last_login": user.last_login,
+            "date_joined": user.date_joined,
+        }
+
+        user_data.append(item)
+
+        if role == "customer":
+            customer_data.append(item)
+        elif role == "business_owner":
+            business_owner_data.append(item)
+        elif role == "admin":
+            admin_data.append(item)
+        elif role == "rider":
+            rider_user_data.append(item)
+
+    restaurant_data = []
+    for restaurant in restaurants:
+        restaurant_data.append({
+            "id": restaurant.id,
+            "name": restaurant.name,
+            "owner": restaurant.owner.first_name or restaurant.owner.username,
+            "owner_email": restaurant.owner.email or restaurant.owner.username,
+            "description": restaurant.description,
+            "address": restaurant.address,
+            "category": restaurant.category,
+            "price_range": restaurant.price_range,
+            "average_rating": restaurant.average_rating,
+            "delivery_available": restaurant.delivery_available,
+            "latitude": restaurant.latitude,
+            "longitude": restaurant.longitude,
+            "created_at": restaurant.created_at,
+        })
+
+    branch_data = []
+    for branch in branches:
+        branch_data.append({
+            "id": branch.id,
+            "restaurant_id": branch.restaurant.id,
+            "restaurant_name": branch.restaurant.name,
+            "owner": branch.restaurant.owner.first_name or branch.restaurant.owner.username,
+            "owner_email": branch.restaurant.owner.email or branch.restaurant.owner.username,
+            "name": branch.name,
+            "address": branch.address,
+            "phone": branch.phone,
+            "latitude": branch.latitude,
+            "longitude": branch.longitude,
+            "is_active": branch.is_active,
+            "created_at": branch.created_at,
+        })
+
+    menu_item_data = []
+    for item in menu_items:
+        menu_item_data.append({
+            "id": item.id,
+            "name": item.name,
+            "restaurant": item.restaurant.name,
+            "branch": item.branch.name if item.branch else "Main Restaurant",
+            "description": item.description,
+            "price": str(item.price),
+            "available": item.available,
+            "preference_tags": item.preference_tags,
+            "created_at": item.created_at,
+        })
+
+    deal_data = []
+    for deal in deals:
+        deal_data.append({
+            "id": deal.id,
+            "title": deal.title,
+            "restaurant": deal.restaurant.name,
+            "branch": deal.branch.name if deal.branch else "Main Restaurant",
+            "apply_to_all_branches": deal.apply_to_all_branches,
+            "applies_to": (
+                "Main Restaurant + All Branches"
+                if deal.apply_to_all_branches
+                else deal.branch.name if deal.branch else "Main Restaurant"
+            ),
+            "description": deal.description,
+            "active_status": deal.active_status,
+            "discount_type": deal.discount_type,
+            "discount_value": str(deal.discount_value),
+            "minimum_order_amount": str(deal.minimum_order_amount),
+        })
+
+    order_data = []
+    for order in orders:
+        order_data.append({
+            "id": order.id,
+            "customer": order.customer.first_name or order.customer.username,
+            "customer_email": order.customer.email or order.customer.username,
+            "restaurant": order.restaurant.name,
+            "rider": order.rider.user.username if order.rider else "Not Assigned",
+            "customer_name": order.customer_name,
+            "phone_number": order.phone_number,
+            "delivery_address": order.delivery_address,
+            "payment_method": order.payment_method,
+            "status": order.status,
+            "original_amount": str(order.original_amount),
+            "discount_amount": str(order.discount_amount),
+            "delivery_charge": str(order.delivery_charge),
+            "total_amount": str(order.total_amount),
+            "applied_deal_title": order.applied_deal_title,
+            "created_at": order.created_at,
+        })
 
     review_data = []
     for review in reviews:
-        review_data.append(
-            {
-                "id": review.id,
-                "restaurant_name": review.restaurant.name,
-                "customer_name": review.user.first_name or review.user.username,
-                "rating": review.rating,
-                "comment": review.comment,
-                "is_approved": review.is_approved,
-                "created_at": review.created_at,
-                "report_count": review.reports.count(),
-            }
-        )
+        review_data.append({
+            "id": review.id,
+            "restaurant_name": review.restaurant.name,
+            "customer_name": review.user.first_name or review.user.username,
+            "customer_email": review.user.email or review.user.username,
+            "order_id": review.order.id,
+            "rating": review.rating,
+            "comment": review.comment,
+            "is_approved": review.is_approved,
+            "is_reported": review.is_reported,
+            "report_count": review.reports.count(),
+            "created_at": review.created_at,
+        })
 
     report_data = []
     for report in reports:
-        report_data.append(
-            {
-                "id": report.id,
-                "review_id": report.review.id,
-                "restaurant_name": report.review.restaurant.name,
-                "review_comment": report.review.comment,
-                "reported_by": report.reported_by.first_name
-                or report.reported_by.username,
-                "reason": report.reason,
-                "resolved": report.resolved,
-                "created_at": report.created_at,
-            }
-        )
+        report_data.append({
+            "id": report.id,
+            "review_id": report.review.id,
+            "restaurant_name": report.review.restaurant.name,
+            "review_comment": report.review.comment,
+            "reported_by": report.reported_by.first_name or report.reported_by.username,
+            "reason": report.reason,
+            "resolved": report.resolved,
+            "created_at": report.created_at,
+        })
 
     return Response(
         {
+            "summary": {
+                "total_users": len(user_data),
+                "total_customers": len(customer_data),
+                "total_business_owners": len(business_owner_data),
+                "total_admins": len(admin_data),
+                "total_riders": len(rider_user_data),
+                "total_restaurants": len(restaurant_data),
+                "total_branches": len(branch_data),
+                "total_menu_items": len(menu_item_data),
+                "total_deals": len(deal_data),
+                "total_orders": len(order_data),
+                "total_reviews": len(review_data),
+                "total_reports": len(report_data),
+            },
             "users": user_data,
+            "customers": customer_data,
+            "business_owners": business_owner_data,
+            "admins": admin_data,
+            "riders": rider_user_data,
+            "restaurants": restaurant_data,
+            "branches": branch_data,
+            "menu_items": menu_item_data,
+            "deals": deal_data,
+            "orders": order_data,
             "reviews": review_data,
             "reports": report_data,
             "pagination": {
@@ -1063,7 +1471,8 @@ def admin_dashboard_data(request):
                 "report_total": len(report_data),
                 "page_size": 6,
             },
-        }
+        },
+        status=status.HTTP_200_OK,
     )
 
 

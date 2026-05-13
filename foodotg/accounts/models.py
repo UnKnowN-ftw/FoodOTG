@@ -38,7 +38,22 @@ class Restaurant(models.Model):
 
     def __str__(self):
         return self.name
+class RestaurantBranch(models.Model):
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name="branches"
+    )
+    name = models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
+    latitude = models.FloatField(default=23.8103)
+    longitude = models.FloatField(default=90.4125)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=now, editable=False)
 
+    def __str__(self):
+        return f"{self.restaurant.name} - {self.name}"
 
 class Deal(models.Model):
     DISCOUNT_TYPE_CHOICES = (
@@ -47,9 +62,19 @@ class Deal(models.Model):
     )
 
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    branch = models.ForeignKey(
+        RestaurantBranch,
+        on_delete=models.CASCADE,
+        related_name="deals",
+        blank=True,
+        null=True
+    )
+
     title = models.CharField(max_length=255)
     description = models.TextField()
     active_status = models.BooleanField(default=True)
+
+    apply_to_all_branches = models.BooleanField(default=False)
 
     discount_type = models.CharField(
         max_length=20,
@@ -62,7 +87,6 @@ class Deal(models.Model):
     def __str__(self):
         return self.title
 
-
 class Preference(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     budget_range = models.CharField(max_length=50, blank=True, null=True)
@@ -74,16 +98,28 @@ class Preference(models.Model):
 
 class MenuItem(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='menu_items')
+    branch = models.ForeignKey(
+        RestaurantBranch,
+        on_delete=models.CASCADE,
+        related_name="menu_items",
+        blank=True,
+        null=True
+    )
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.ImageField(upload_to="menu_items/", blank=True, null=True)
     available = models.BooleanField(default=True)
+
+    preference_tags = models.JSONField(default=list, blank=True)
+
     created_at = models.DateTimeField(default=now, editable=False)
 
     def __str__(self):
+        if self.branch:
+            return f"{self.name} - {self.branch.name}"
         return f"{self.name} - {self.restaurant.name}"
-
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cart')

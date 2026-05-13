@@ -564,3 +564,17 @@ textarea {
     background: #f8fafc;
     cursor: not-allowed;
 }
+
+/* Branch + preference tag additions */
+.preference-tags-box {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+.preference-tags-box > label:first-child {
+  grid-column: 1 / -1;
+}

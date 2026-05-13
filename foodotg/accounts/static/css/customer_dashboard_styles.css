@@ -4,7 +4,7 @@
     gap: 20px;
 }
 
-y * {
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -1255,4 +1255,13 @@ body {
 
 .restaurant-review-card .danger-btn {
   margin-top: 10px;
+}
+
+/* Branch selector addition */
+#customerBranchSelect {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
 }

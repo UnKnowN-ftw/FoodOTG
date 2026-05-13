@@ -18,7 +18,20 @@ urlpatterns = [
     path("api/business-dashboard/", views.business_dashboard_data),
     path("api/business-reviews/", views.business_reviews),
     path("api/add-restaurant/", views.add_restaurant),
-	# ================= PROMOTIONS =================
+	# ================= BRANCHES =================
+    path("api/restaurants/<int:restaurant_id>/branches/", views.restaurant_branches),
+    path("api/restaurants/<int:restaurant_id>/branches/add/", views.add_branch),
+    path("api/branches/<int:branch_id>/update/", views.update_branch),
+    path("api/branches/<int:branch_id>/delete/", views.delete_branch),
+
+    # Branch menu
+    path("api/branches/<int:branch_id>/menu/", views.branch_menu_items),
+    path("api/branches/<int:branch_id>/menu/add/", views.add_branch_menu_item),
+
+    # Customer branch data
+    path("api/customer/restaurants/<int:restaurant_id>/branches/", views.customer_restaurant_branches),
+    path("api/customer/branches/<int:branch_id>/menu/", views.customer_branch_menu_items),
+    # ================= PROMOTIONS =================
     path("api/business-promotions/", views.business_promotions),
     path("api/promotions/add/", views.add_promotion),
     path("api/promotions/<int:deal_id>/update/", views.update_promotion),

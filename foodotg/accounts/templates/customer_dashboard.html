@@ -41,7 +41,6 @@
 
     </div>
   </nav>
-  </nav>
 
   <div class="page-shell">
     <div class="dashboard-container">
@@ -189,6 +188,12 @@
         <button class="close-btn" type="button" onclick="closeMenuModal()">&times;</button>
       </div>
       <div id="menuMessage" class="message"></div>
+      <div class="field" style="margin-bottom:14px;">
+        <label for="customerBranchSelect">Select Branch</label>
+        <select id="customerBranchSelect" onchange="loadSelectedBranchMenu()">
+          <option value="">Main Restaurant</option>
+        </select>
+      </div>
       <div id="menuItemsList"
         style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px;"></div>
         <div class="restaurant-reviews-section">
@@ -269,6 +274,7 @@
     let filteredBusinesses = [];
     let userPreferences = [];
     let userBudgetRange = "";
+    let currentMenuBusiness = null;
     let orders = [];
 
     const menuModal = document.getElementById("menuModal");
@@ -407,6 +413,30 @@
       document.getElementById("cartItemsCount").innerText = cartTotalItems;
     }
 
+
+
+    async function loadCustomerBranches(restaurantId) {
+      const select = document.getElementById("customerBranchSelect");
+      if (!select) return;
+
+      select.innerHTML = `<option value="">${escapeHtml(currentMenuBusiness?.name || currentMenuBusiness?.display_name || "Restaurant")}</option>`;
+      try {
+        const response = await fetch(`/api/customer/restaurants/${restaurantId}/branches/`, {
+          headers: authHeaders(),
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const branches = data.branches || data || [];
+
+        branches.forEach((branch) => {
+          select.innerHTML += `<option value="${branch.id}">${escapeHtml(branch.name)}</option>`;
+        });
+      } catch (error) { }
+    }
+
+
     async function loadDashboard() {
       try {
         const response = await fetch("/api/dashboard/", {
@@ -436,6 +466,7 @@
         renderRestaurantMarkers(filteredBusinesses);
         updateSummaryCounts();
       } catch (error) {
+        console.error("Dashboard load failed:", error);
         document.getElementById("restaurants").innerHTML =
           `<div class="empty-card"><p>Failed to load restaurants.</p></div>`;
         document.getElementById("deals").innerHTML =
@@ -684,7 +715,7 @@
       });
     }
 
-    function renderRestaurants() {
+function renderRestaurants() {
       const restaurantDiv = document.getElementById("restaurants");
       restaurantDiv.innerHTML = "";
 
@@ -697,8 +728,7 @@
         return;
       }
 
-      filteredBusinesses.forEach((b) => {
-        const safeName = escapeJsString(b.name || "");
+      filteredBusinesses.forEach((b, index) => {
         const imageUrl = getImageUrl(
           b.image,
           "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800"
@@ -709,14 +739,20 @@
             <img
               class="restaurant-image"
               src="${escapeHtml(imageUrl)}"
-              alt="${escapeHtml(b.name)}"
+              alt="${escapeHtml(b.display_name || b.name)}"
               onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800';"
             >
             <div class="restaurant-body">
               <div class="restaurant-top">
-                <h4>${escapeHtml(b.name)}</h4>
+                <h4>${escapeHtml(b.display_name || b.name)}</h4>
                 <span class="price-pill">${escapeHtml(b.price_range || "")}</span>
               </div>
+
+              ${
+                  b.is_branch
+                    ? `<p class="muted-line"><strong>Branch of:</strong> ${escapeHtml(b.main_restaurant_name || "")}</p>`
+                    : ``
+                }
 
               <p class="muted-line">${escapeHtml(b.category || "")}</p>
               <p class="muted-line">${escapeHtml(b.address || "")}</p>
@@ -727,12 +763,60 @@
               </div>
 
               <div class="card-actions">
-                <button type="button" class="primary-btn" onclick="openMenuModal(${b.id}, '${safeName}')">View Menu</button>
+                <button type="button" class="primary-btn" onclick="openMenuFromBusinessIndex(${index})">View Menu</button>
               </div>
             </div>
           </div>
         `;
       });
+    }
+
+    function openMenuFromBusinessIndex(index) {
+      const business = filteredBusinesses[index];
+      if (!business) return;
+      openMenuModalForBusiness(business);
+    }
+
+    async function loadSelectedBranchMenu() {
+      const branchSelect = document.getElementById("customerBranchSelect");
+      if (!branchSelect || !currentMenuBusiness) return;
+
+      const branchId = branchSelect.value;
+
+      if (branchId) {
+        await loadCustomerMenu(`/api/customer/branches/${branchId}/menu/`);
+      } else {
+        await loadCustomerMenu(`/api/customer/restaurants/${currentMenuBusiness.restaurant_id || currentMenuBusiness.id}/menu/`);
+      }
+    }
+
+    async function openMenuModalForBusiness(business) {
+      currentMenuBusiness = business;
+      menuModal.classList.add("show");
+
+      document.getElementById("menuModalTitle").innerText =
+        `Menu - ${business.display_name || business.name}`;
+
+      document.getElementById("menuMessage").innerHTML = "";
+
+      const branchSelect = document.getElementById("customerBranchSelect");
+
+      if (branchSelect) {
+        if (business.is_branch) {
+          branchSelect.innerHTML = `
+            <option value="${business.branch_id}" selected>
+              ${escapeHtml(business.display_name || business.name)}
+            </option>
+          `;
+          branchSelect.disabled = true;
+        } else {
+          branchSelect.disabled = false;
+          await loadCustomerBranches(business.restaurant_id || business.id);
+        }
+      }
+
+      await loadCustomerMenu(business.menu_url || `/api/customer/restaurants/${business.restaurant_id || business.id}/menu/`);
+      loadRestaurantReviews(business.restaurant_id || business.id);
     }
 
     function filterData() {
@@ -742,7 +826,8 @@
 
       filteredBusinesses = businesses.filter(
         (b) =>
-          (String(b.name || "").toLowerCase().includes(search) ||
+          (String(b.display_name || b.name || "").toLowerCase().includes(search) ||
+            String(b.main_restaurant_name || "").toLowerCase().includes(search) ||
             String(b.category || "").toLowerCase().includes(search)) &&
           (category === "All" || b.category === category) &&
           (location === "All" || b.address === location),
@@ -841,10 +926,20 @@
     });
 
     async function openMenuModal(restaurantId, restaurantName) {
-      menuModal.classList.add("show");
-      document.getElementById("menuModalTitle").innerText = `Menu - ${restaurantName}`;
-      document.getElementById("menuMessage").innerHTML = "";
+      const business = {
+        id: restaurantId,
+        restaurant_id: restaurantId,
+        branch_id: null,
+        is_branch: false,
+        name: restaurantName,
+        display_name: restaurantName,
+        menu_url: `/api/customer/restaurants/${restaurantId}/menu/`,
+      };
 
+      await openMenuModalForBusiness(business);
+    }
+
+    async function loadCustomerMenu(url) {
       const list = document.getElementById("menuItemsList");
       list.style.display = "grid";
       list.style.gridTemplateColumns = "repeat(auto-fill, minmax(220px, 1fr))";
@@ -852,7 +947,7 @@
       list.innerHTML = `<div class="empty-card"><p>Loading menu...</p></div>`;
 
       try {
-        const response = await fetch(`/api/customer/restaurants/${restaurantId}/menu/`, {
+        const response = await fetch(url, {
           headers: authHeaders(),
         });
 
@@ -877,42 +972,55 @@
             item.image,
             "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800"
           );
-        loadRestaurantReviews(restaurantId);
+
+          const tags = Array.isArray(item.preference_tags) ? item.preference_tags : [];
 
           list.innerHTML += `
-        <div style="height:330px; padding:10px; border:1px solid #e6ebf2; border-radius:12px; background:white; display:flex; flex-direction:column; overflow:hidden;">
-          <div style="width:100%; height:150px; overflow:hidden; border-radius:10px; margin-bottom:10px;">
-            <img
-              src="${escapeHtml(menuImageUrl)}"
-              alt="${escapeHtml(item.name)}"
-              style="width:100%; height:100%; object-fit:cover; display:block;"
-              onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';"
-            >
-          </div>
+            <div style="height:330px; padding:10px; border:1px solid #e6ebf2; border-radius:12px; background:white; display:flex; flex-direction:column; overflow:hidden;">
+              <div style="width:100%; height:150px; overflow:hidden; border-radius:10px; margin-bottom:10px;">
+                <img
+                  src="${escapeHtml(menuImageUrl)}"
+                  alt="${escapeHtml(item.name)}"
+                  style="width:100%; height:100%; object-fit:cover; display:block;"
+                  onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';"
+                >
+              </div>
 
-          <h4 style="font-size:16px; line-height:1.25; margin:0 0 6px 0; font-weight:800;">
-            ${escapeHtml(item.name)}
-          </h4>
+              <h4 style="font-size:16px; line-height:1.25; margin:0 0 6px 0; font-weight:800;">
+                ${escapeHtml(item.name)}
+              </h4>
 
-          <p style="font-size:13px; color:#687385; line-height:1.35; height:36px; overflow:hidden; margin:0 0 10px 0;">
-            ${escapeHtml(item.description || "No description available.")}
-          </p>
+              <p style="font-size:13px; color:#687385; line-height:1.35; height:36px; overflow:hidden; margin:0 0 8px 0;">
+                ${escapeHtml(item.description || "No description available.")}
+              </p>
 
-          <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <span style="font-size:15px; font-weight:800; color:#ea5644;">
-              ৳${item.price}
-            </span>
+              <p style="font-size:12px; color:#6b7280; margin-bottom:6px;">
+                Branch: ${escapeHtml(item.branch_name || "Main Restaurant")}
+              </p>
 
-            <button
-              type="button"
-              onclick="addToCart(${item.id})"
-              style="background:#ff6b57; color:white; border:none; padding:9px 12px; border-radius:10px; font-weight:800; cursor:pointer;"
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      `;
+              ${
+                tags.length
+                  ? `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;">
+                      ${tags.map((tag) => `<span style="font-size:11px; font-weight:800; padding:3px 7px; border-radius:999px; background:#ffefe9; color:#ea5644;">${escapeHtml(tag)}</span>`).join("")}
+                    </div>`
+                  : ""
+              }
+
+              <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <span style="font-size:15px; font-weight:800; color:#ea5644;">
+                  ৳${item.price}
+                </span>
+
+                <button
+                  type="button"
+                  onclick="addToCart(${item.id})"
+                  style="background:#ff6b57; color:white; border:none; padding:9px 12px; border-radius:10px; font-weight:800; cursor:pointer;"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          `;
         });
       } catch (error) {
         list.innerHTML = `<div class="empty-card"><p>Failed to load menu.</p></div>`;
@@ -969,6 +1077,12 @@
 
     function closeMenuModal() {
       menuModal.classList.remove("show");
+      const branchSelect = document.getElementById("customerBranchSelect");
+      if (branchSelect) {
+        branchSelect.disabled = false;
+        branchSelect.innerHTML = `<option value="">Main Restaurant</option>`;
+      }
+      currentMenuBusiness = null;
     }
 
     async function loadCart() {

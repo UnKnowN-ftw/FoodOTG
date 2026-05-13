@@ -1,6 +1,7 @@
 import re
 
 from django.contrib.auth.models import User
+from .models import RestaurantBranch
 from rest_framework import serializers
 from .models import Rider
 from .models import (
@@ -12,10 +13,10 @@ from .models import (
     OrderItem,
     Preference,
     Restaurant,
+    RestaurantBranch,
     Review,
     UserProfile,
 )
-
 
 class RegisterSerializer(serializers.ModelSerializer):
     name = serializers.CharField(write_only=True, required=True)
@@ -89,6 +90,7 @@ def create(self, validated_data):
 
 class DealSerializer(serializers.ModelSerializer):
     restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
+    branch_name = serializers.CharField(source="branch.name", read_only=True)
 
     class Meta:
         model = Deal
@@ -96,14 +98,17 @@ class DealSerializer(serializers.ModelSerializer):
             "id",
             "restaurant",
             "restaurant_name",
+            "branch",
+            "branch_name",
             "title",
             "description",
             "active_status",
+            "apply_to_all_branches",
             "discount_type",
             "discount_value",
             "minimum_order_amount",
         ]
-        read_only_fields = ["restaurant_name"]
+        read_only_fields = ["restaurant_name", "branch_name"]
 
 
 class PreferenceSerializer(serializers.ModelSerializer):
@@ -113,10 +118,12 @@ class PreferenceSerializer(serializers.ModelSerializer):
 
 
 class MenuItemSerializer(serializers.ModelSerializer):
+    branch_name = serializers.CharField(source="branch.name", read_only=True)
+
     class Meta:
         model = MenuItem
         fields = "__all__"
-        read_only_fields = ["restaurant", "created_at"]
+        read_only_fields = ["restaurant", "created_at", "branch_name"]
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -254,4 +261,22 @@ choices=[
     ("rider", "Rider"),
 ]
 
+class RestaurantBranchSerializer(serializers.ModelSerializer):
+    restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
+
+    class Meta:
+        model = RestaurantBranch
+        fields = [
+            "id",
+            "restaurant",
+            "restaurant_name",
+            "name",
+            "address",
+            "latitude",
+            "longitude",
+            "phone",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = ["restaurant", "restaurant_name", "created_at"]
 

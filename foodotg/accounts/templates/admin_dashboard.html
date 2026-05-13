@@ -91,6 +91,9 @@
           <button type="button" id="dbTabRestaurants" class="role-tab active" onclick="switchDatabaseTab('restaurants')">
             Restaurants
           </button>
+          <button type="button" id="dbTabBranches" class="role-tab" onclick="switchDatabaseTab('branches')">
+            Branches
+          </button>
           <button type="button" id="dbTabMenuItems" class="role-tab" onclick="switchDatabaseTab('menuItems')">
             Menu Items
           </button>
@@ -301,6 +304,7 @@
         total_admins: data.summary?.total_admins ?? allUsers.filter((user) => user.role === "admin").length,
         total_riders: data.summary?.total_riders ?? riders.length,
         total_restaurants: data.summary?.total_restaurants ?? (data.restaurants || []).length,
+        total_branches: data.summary?.total_branches ?? (data.branches || []).length,
         total_menu_items: data.summary?.total_menu_items ?? (data.menu_items || []).length,
         total_deals: data.summary?.total_deals ?? (data.deals || []).length,
         total_orders: data.summary?.total_orders ?? (data.orders || []).length,
@@ -341,12 +345,13 @@
     function switchDatabaseTab(tabName) {
       activeDatabaseTab = tabName;
 
-      document.querySelectorAll("#dbTabRestaurants, #dbTabMenuItems, #dbTabDeals, #dbTabOrders, #dbTabCarts, #dbTabReviews, #dbTabReports").forEach((button) => {
+      document.querySelectorAll("#dbTabRestaurants, #dbTabBranches, #dbTabMenuItems, #dbTabDeals, #dbTabOrders, #dbTabCarts, #dbTabReviews, #dbTabReports").forEach((button) => {
         button.classList.remove("active");
       });
 
       const activeButton = {
         restaurants: "dbTabRestaurants",
+        branches: "dbTabBranches",
         menuItems: "dbTabMenuItems",
         deals: "dbTabDeals",
         orders: "dbTabOrders",
@@ -442,6 +447,14 @@
             { key: "delivery_available", label: "Delivery", type: "badge" },
             { key: "address", label: "Address" },
           ],
+        };
+      }
+
+      if (activeDatabaseTab === "branches") {
+        return {
+          title: "Branches",
+          records: dashboardData.branches || [],
+          columns: ["id", "restaurant", "owner", "name", "address", "phone", "is_active", "latitude", "longitude", "created_at"],
         };
       }
 

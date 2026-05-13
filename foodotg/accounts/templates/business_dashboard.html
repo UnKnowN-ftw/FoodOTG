@@ -53,6 +53,12 @@
       <div id="restaurantList" class="grid"></div>
     </div>
 
+    <div class="section">
+      <h3>Manage Branches</h3>
+      <p class="subtitle">Select a restaurant card and manage its connected branches.</p>
+      <div id="branchList" class="grid"></div>
+    </div>
+
     <div class="section reviews-section">
       <h3>Customer Reviews</h3>
       <div id="reviewList" class="reviews-grid"></div>
@@ -162,6 +168,40 @@
     <div id="promotionList" class="grid"></div>
   </div>
 
+
+
+  <!-- =========================
+     BRANCH MODAL
+========================= -->
+  <div id="branchModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="branchModalTitle">Manage Branches</h3>
+        <span class="close" onclick="closeBranchModal()">&times;</span>
+      </div>
+      <div id="branchMsg" class="error"></div>
+      <form id="branchForm">
+        <div class="input-group"><input type="text" id="branch_name" placeholder="Branch Name" required /></div>
+        <div class="input-group"><input type="text" id="branch_address" placeholder="Branch Address" required /></div>
+        <div class="input-group"><input type="text" id="branch_phone" placeholder="Branch Phone" /></div>
+        <div class="row">
+          <div class="input-group"><input type="number" step="0.0001" id="branch_latitude" placeholder="Latitude" value="23.8103" /></div>
+          <div class="input-group"><input type="number" step="0.0001" id="branch_longitude" placeholder="Longitude" value="90.4125" /></div>
+        </div>
+        <div class="checkbox-group"><label><input type="checkbox" id="branch_active" checked /> Active Branch</label></div>
+        <div class="button-row">
+          <button type="submit">Save Branch</button>
+          <button type="button" class="secondary-btn" onclick="closeBranchModal()">Cancel</button>
+        </div>
+      </form>
+      <div class="section">
+        <h3>Branches</h3>
+        <div id="branchItemsList" class="grid"></div>
+      </div>
+    </div>
+  </div>
+
+
   <!-- =========================
      MENU MODAL
 ========================= -->
@@ -176,6 +216,12 @@
 
       <form id="menuForm">
         <div class="input-group">
+          <select id="menu_branch">
+            <option value="">Main Restaurant Menu</option>
+          </select>
+        </div>
+
+        <div class="input-group">
           <input type="text" id="menu_name" placeholder="Item Name" required />
         </div>
 
@@ -189,6 +235,18 @@
 
         <div class="input-group">
           <input type="file" id="menu_image" accept="image/*" />
+        </div>
+
+        <div class="checkbox-group preference-tags-box">
+          <label><strong>Preference Tags</strong></label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Mild" /> Mild</label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Medium" /> Medium</label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Spicy" /> Spicy</label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Extra Spicy" /> Extra Spicy</label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Fast-Food" /> Fast-Food</label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Halal" /> Halal</label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Dessert" /> Dessert</label>
+          <label><input type="checkbox" class="menu-pref-tag" name="preference_tags" value="Seafood" /> Seafood</label>
         </div>
 
         <div class="checkbox-group">
@@ -224,7 +282,19 @@
 
       <form id="promotionForm">
         <div class="input-group">
-          <select name="restaurant" id="promotionRestaurant" required></select>
+          <select name="restaurant" id="promotionRestaurant" required onchange="populatePromotionBranches()"></select>
+        </div>
+
+        <div class="input-group">
+          <select id="promotionScope" onchange="togglePromotionBranchSelect()">
+            <option value="main">Main Restaurant Only</option>
+            <option value="branch">Single Branch Only</option>
+            <option value="all">Main Restaurant + All Branches</option>
+          </select>
+        </div>
+
+        <div class="input-group" id="promotionBranchWrap" style="display:none;">
+          <select name="branch" id="promotionBranch"></select>
         </div>
 
         <div class="input-group">
@@ -361,6 +431,15 @@
     const menuItemsList = document.getElementById("menuItemsList");
 
     const reviewList = document.getElementById("reviewList");
+
+    const branchModal = document.getElementById("branchModal");
+    const branchForm = document.getElementById("branchForm");
+    const branchMsg = document.getElementById("branchMsg");
+    const branchList = document.getElementById("branchList");
+    const branchItemsList = document.getElementById("branchItemsList");
+    let currentBranchRestaurantId = null;
+    let editingBranchId = null;
+    let branchCache = {};
 
     let currentRestaurantId = null;
     let editingMenuItemId = null;
@@ -521,6 +600,192 @@
       });
     }
 
+
+
+    /* =========================
+ BRANCH MANAGEMENT
+========================= */
+    function openBranchModal(restaurantId, restaurantName) {
+      currentBranchRestaurantId = restaurantId;
+      editingBranchId = null;
+      document.getElementById("branchModalTitle").innerText = `Manage Branches - ${restaurantName}`;
+      branchForm.reset();
+      document.getElementById("branch_active").checked = true;
+      branchMsg.innerText = "";
+      branchMsg.style.color = "";
+      branchModal.style.display = "flex";
+      loadBranches(restaurantId);
+    }
+
+    function closeBranchModal() {
+      branchModal.style.display = "none";
+      branchForm.reset();
+      branchMsg.innerText = "";
+      currentBranchRestaurantId = null;
+      editingBranchId = null;
+    }
+
+    async function loadBranches(restaurantId) {
+      if (!restaurantId) return [];
+      const response = await fetch(`/api/restaurants/${restaurantId}/branches/`, { headers: authHeaders() });
+      const branches = response.ok ? await response.json() : [];
+      branchCache[restaurantId] = branches;
+      renderBranches(branches);
+      return branches;
+    }
+
+    function renderBranches(branches) {
+      if (!branchItemsList) return;
+      branchItemsList.innerHTML = "";
+      branchList.innerHTML = "";
+
+      if (!branches.length) {
+        branchItemsList.innerHTML = `<div class="empty-state"><p>No branches yet.</p></div>`;
+        branchList.innerHTML = `<div class="empty-state"><p>Select a restaurant and add branches.</p></div>`;
+        return;
+      }
+
+      branches.forEach((branch) => {
+        const card = `
+          <div class="card">
+            <div class="card-body">
+              <h4>${escapeHtml(branch.name)}</h4>
+              <p><strong>Main Restaurant:</strong> ${escapeHtml(branch.restaurant_name || "")}</p>
+              <p><strong>Address:</strong> ${escapeHtml(branch.address)}</p>
+              <p><strong>Phone:</strong> ${escapeHtml(branch.phone || "N/A")}</p>
+              <p><strong>Status:</strong> ${branch.is_active ? "Active" : "Inactive"}</p>
+              <div class="card-actions">
+                <button type="button" onclick="editBranch(${branch.id}, '${String(branch.name).replace(/'/g, "\\'")}', '${String(branch.address).replace(/'/g, "\\'")}', '${String(branch.phone || "").replace(/'/g, "\\'")}', ${branch.latitude}, ${branch.longitude}, ${branch.is_active})">Edit</button>
+                <button type="button" class="secondary-btn" onclick="deleteBranch(${branch.id})">Delete</button>
+              </div>
+            </div>
+          </div>`;
+        branchItemsList.innerHTML += card;
+        branchList.innerHTML += card;
+      });
+    }
+
+    function editBranch(id, name, address, phone, lat, lng, active) {
+      editingBranchId = id;
+      document.getElementById("branch_name").value = name;
+      document.getElementById("branch_address").value = address;
+      document.getElementById("branch_phone").value = phone;
+      document.getElementById("branch_latitude").value = lat || 23.8103;
+      document.getElementById("branch_longitude").value = lng || 90.4125;
+      document.getElementById("branch_active").checked = active;
+    }
+
+    async function deleteBranch(branchId) {
+      if (!confirm("Delete this branch?")) return;
+      const response = await fetch(`/api/branches/${branchId}/delete/`, { method: "DELETE", headers: authHeaders() });
+      if (response.ok && currentBranchRestaurantId) loadBranches(currentBranchRestaurantId);
+      else alert("Failed to delete branch.");
+    }
+
+    branchForm.addEventListener("submit", async function (e) {
+  e.preventDefault();
+
+  branchMsg.innerText = "";
+  branchMsg.style.color = "";
+
+  if (!currentBranchRestaurantId) {
+    branchMsg.innerText = "Restaurant is not selected.";
+    return;
+  }
+
+  const payload = {
+    name: document.getElementById("branch_name").value.trim(),
+    address: document.getElementById("branch_address").value.trim(),
+    phone: document.getElementById("branch_phone").value.trim(),
+    latitude: document.getElementById("branch_latitude").value || "23.8103",
+    longitude: document.getElementById("branch_longitude").value || "90.4125",
+    is_active: document.getElementById("branch_active").checked,
+  };
+
+  if (!payload.name || !payload.address) {
+    branchMsg.innerText = "Branch name and address are required.";
+    return;
+  }
+
+  let url = `/api/restaurants/${currentBranchRestaurantId}/branches/add/`;
+  let method = "POST";
+
+  if (editingBranchId) {
+    url = `/api/branches/${editingBranchId}/update/`;
+    method = "PUT";
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: method,
+      headers: authHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify(payload),
+    });
+
+    const rawText = await response.text();
+
+    let data = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch (error) {
+      data = {};
+    }
+
+    if (!response.ok) {
+      console.error("Branch save failed:", response.status, rawText);
+      branchMsg.innerText =
+        data.error ||
+        data.detail ||
+        rawText ||
+        `Failed to save branch. Status: ${response.status}`;
+      return;
+    }
+
+    branchMsg.style.color = "green";
+    branchMsg.innerText = data.message || "Branch saved successfully.";
+
+    editingBranchId = null;
+    branchForm.reset();
+    document.getElementById("branch_active").checked = true;
+
+    await loadBranches(currentBranchRestaurantId);
+  } catch (error) {
+    console.error(error);
+    branchMsg.innerText = "Server communication error while saving branch.";
+  }
+});
+
+    async function populateMenuBranches(restaurantId) {
+      const select = document.getElementById("menu_branch");
+      if (!select) return;
+      let branches = branchCache[restaurantId] || await loadBranches(restaurantId);
+      select.innerHTML = `<option value="">Main Restaurant Menu</option>`;
+      branches.forEach((branch) => {
+        if (branch.is_active) select.innerHTML += `<option value="${branch.id}">${escapeHtml(branch.name)}</option>`;
+      });
+    }
+
+    async function populatePromotionBranches() {
+      const restaurantId = promotionRestaurant.value;
+      const branchSelect = document.getElementById("promotionBranch");
+      if (!branchSelect || !restaurantId) return;
+      let branches = branchCache[restaurantId] || await loadBranches(restaurantId);
+      branchSelect.innerHTML = "";
+      branches.forEach((branch) => {
+        if (branch.is_active) branchSelect.innerHTML += `<option value="${branch.id}">${escapeHtml(branch.name)}</option>`;
+      });
+    }
+
+    function togglePromotionBranchSelect() {
+      const scope = document.getElementById("promotionScope").value;
+      const wrap = document.getElementById("promotionBranchWrap");
+      wrap.style.display = scope === "branch" ? "block" : "none";
+      if (scope === "branch") populatePromotionBranches();
+    }
+
+
     /* =========================
  LOAD PROMOTIONS
 ========================= */
@@ -572,6 +837,7 @@
                     <h4>${escapeHtml(promotion.title)}</h4>
                     <p>${escapeHtml(promotion.description)}</p>
                     <p><strong>Restaurant:</strong> ${escapeHtml(promotion.restaurant_name || "")}</p>
+                    <p><strong>Applies To:</strong> ${promotion.apply_to_all_branches ? "Main + All Branches" : escapeHtml(promotion.branch_name || "Main Restaurant")}</p>
                     <p><strong>Status:</strong> ${promotion.active_status ? "Active" : "Inactive"}</p>
 
                     <div class="card-actions">
@@ -598,6 +864,8 @@
       promotionForm.elements["title"].value = title;
       promotionForm.elements["description"].value = description;
       promotionForm.elements["active_status"].checked = activeStatus;
+      document.getElementById("promotionScope").value = "main";
+      togglePromotionBranchSelect();
 
       promotionModal.style.display = "flex";
     }
@@ -630,6 +898,8 @@
         discount_value: formData.get("discount_value"),
         minimum_order_amount: formData.get("minimum_order_amount"),
         active_status: formData.get("active_status") === "on",
+        branch: document.getElementById("promotionScope").value === "branch" ? document.getElementById("promotionBranch").value : "",
+        apply_to_all_branches: document.getElementById("promotionScope").value === "all",
       };
 
       let url = "/api/promotions/add/";
@@ -716,6 +986,7 @@
 
                     <div class="card-actions">
                         <button type="button" onclick="openMenuModal(${r.id}, '${safeName}')">Manage Menu</button>
+                        <button type="button" class="secondary-btn" onclick="openBranchModal(${r.id}, '${safeName}')">Manage Branches</button>
                     </div>
                 </div>
             </div>
@@ -831,6 +1102,7 @@
       menuForm.reset();
       menuMsg.innerText = "";
 
+      populateMenuBranches(restaurantId);
       loadMenuItems();
     }
 
@@ -889,12 +1161,22 @@
                         <h4>${escapeHtml(item.name)}</h4>
                         <p>${escapeHtml(item.description || "")}</p>
                         <p><strong>Price:</strong> ৳${item.price}</p>
+                        <p><strong>Branch:</strong> ${escapeHtml(item.branch_name || "Main Restaurant")}</p>
                         <p><strong>Price Category:</strong> ${priceCategory}</p>
+                        <p><strong>Preference Tags:</strong> ${escapeHtml((item.preference_tags || []).join(", ") || "None")}</p>
                         <p><strong>Status:</strong> ${item.available ? "Available" : "Unavailable"}</p>
                         <div class="card-actions">
-                            <button type="button" onclick="editMenuItem(${item.id}, '${escapedName}', '${escapedDescription}', '${item.price}', ${item.available})">Edit</button>
-                            <button type="button" class="secondary-btn" onclick="removeMenuItem(${item.id})">Delete</button>
-                        </div>
+                        <button type="button" onclick='editMenuItem(${JSON.stringify({
+                          id: item.id,
+                          name: item.name,
+                          description: item.description || "",
+                          price: item.price,
+                          available: item.available,
+                          branch: item.branch || "",
+                          preference_tags: item.preference_tags || []
+                        })})'>Edit</button>                            
+                        <button type="button" class="secondary-btn" onclick="removeMenuItem(${item.id})">Delete</button>
+                                                </div>
                     </div>
                 </div>
             `;
@@ -911,15 +1193,25 @@
     /* =========================
  EDIT MENU ITEM
 ========================= */
-    function editMenuItem(id, name, description, price, available) {
-      editingMenuItemId = id;
-      document.getElementById("menu_name").value = name;
-      document.getElementById("menu_description").value = description;
-      document.getElementById("menu_price").value = price;
-      document.getElementById("menu_available").checked = available;
-      document.getElementById("menu_image").value = "";
-    }
+      function editMenuItem(item) {
+        editingMenuItemId = item.id;
 
+        document.getElementById("menu_name").value = item.name || "";
+        document.getElementById("menu_description").value = item.description || "";
+        document.getElementById("menu_price").value = item.price || "";
+        document.getElementById("menu_available").checked = Boolean(item.available);
+        document.getElementById("menu_image").value = "";
+
+        const branchSelect = document.getElementById("menu_branch");
+        if (branchSelect) {
+          branchSelect.value = item.branch || "";
+        }
+
+        document.querySelectorAll(".menu-pref-tag").forEach((checkbox) => {
+          checkbox.checked = Array.isArray(item.preference_tags)
+            && item.preference_tags.includes(checkbox.value);
+        });
+      }
     /* =========================
  DELETE MENU ITEM
 ========================= */
@@ -957,6 +1249,9 @@
       formData.append("description", document.getElementById("menu_description").value);
       formData.append("price", document.getElementById("menu_price").value);
       formData.append("available", document.getElementById("menu_available").checked);
+      formData.append("branch", document.getElementById("menu_branch").value);
+      const preferenceTags = Array.from(document.querySelectorAll('input[name="preference_tags"]:checked')).map(cb => cb.value);
+      formData.append("preference_tags", JSON.stringify(preferenceTags));
 
       const menuImageInput = document.getElementById("menu_image");
       if (menuImageInput.files.length > 0) {
