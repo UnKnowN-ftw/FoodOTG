@@ -1,7 +1,7 @@
 import re
 
 from django.contrib.auth.models import User
-from .models import RestaurantBranch
+from .models import RestaurantBranch, Rider
 from rest_framework import serializers
 from .models import Rider
 from .models import (
@@ -59,6 +59,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
         UserProfile.objects.create(user=user, role=role)
+
+        if role == "rider":
+            Rider.objects.create(
+                user = user,
+                is_available = True,
+            )
+
         return user
 
 
