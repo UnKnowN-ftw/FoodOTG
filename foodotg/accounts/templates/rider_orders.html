@@ -1,0 +1,183 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FoodOTG | Rider Orders</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'css/business_dashboard_styles.css' %}"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+      }
+
+      body {
+        background: #f4f6f9;
+        padding: 40px;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: auto;
+        background: #fff;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      thead {
+        background: #4a90e2;
+        color: white;
+      }
+
+      th,
+      td {
+        padding: 14px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      tbody tr:hover {
+        background: #f1f1f1;
+      }
+
+      .status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        color: white;
+        display: inline-block;
+      }
+
+      .pending {
+        background: orange;
+      }
+
+      .completed {
+        background: green;
+      }
+
+      .cancelled {
+        background: crimson;
+      }
+
+      @media (max-width: 768px) {
+        table {
+          font-size: 14px;
+        }
+
+        th,
+        td {
+          padding: 10px;
+        }
+      }
+    </style>
+      </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h2>My Orders</h2>
+          <p class="subtitle">View your assigned delivery orders</p>
+        </div>
+
+        <a href="/rider-dashboard/"
+          ><button class="logout-btn">Back to Dashboard</button></a
+        >
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+
+      <div class="container">
+        <h3 style="margin-bottom: 10px;">Order List</h3>
+        <div class="orders-list" id="ordersList"></div>
+      </div>
+    </div>
+
+    <script>
+      function getAccessToken() {
+        return localStorage.getItem("token") || localStorage.getItem("access");
+      }
+
+      function authHeaders() {
+        return {
+          Authorization: "Bearer " + getAccessToken(),
+        };
+      }
+
+      if (!getAccessToken()) {
+        window.location.href = "/login/";
+      }
+
+      if (localStorage.getItem("role") !== "rider") {
+        alert("Access denied. Rider only.");
+        window.location.href = "/login/";
+      }
+
+      async function loadOrders() {
+        const container = document.getElementById("ordersList");
+
+        try {
+          const response = await fetch("/api/rider/orders/", {
+            headers: authHeaders(),
+          });
+
+          const orders = await response.json();
+
+          console.log({ orders });
+
+          if (!response.ok) {
+            container.innerHTML = `<div class="empty-state">${orders.error || "Failed to load orders."}</div>`;
+            return;
+          }
+
+          container.innerHTML = "";
+
+          if (!orders.length) {
+            container.innerHTML = `<div class="empty-state">No assigned orders yet.</div>`;
+            return;
+          }
+
+          orders.forEach((order) => {
+            container.innerHTML += `
+                <div class="card" style="margin-bottom: 20px">
+                    <div class="card-body">
+                        <h4>Order #${order.id}</h4>
+                        <p><strong>Customer:</strong> ${order.customer}</p>
+                        <p><strong>Restaurant:</strong> ${order.restaurant_name}</p>
+                        <p><strong>Address:</strong> ${order.restaurant_address}</p>
+                        <p><strong>Status:</strong> ${order.status}</p>
+                        <p><strong>Total:</strong> ৳${order.total_amount}</p>
+                    </div>
+                </div>
+            `;
+          });
+        } catch (error) {
+          container.innerHTML = `<div class="empty-state">Server communication error.</div>`;
+        }
+      }
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "/login/";
+      }
+
+      loadOrders();
+    </script>
+  </body>
+</html>
