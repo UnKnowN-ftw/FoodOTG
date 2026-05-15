@@ -93,15 +93,17 @@ urlpatterns = [
     path("api/admin/users/<int:user_id>/unban/", views.admin_unban_user),
 
     # ================= RIDER =================
-    path("rider-dashboard/", views.rider_dashboard_page, name="rider_dashboard"),
-    path("rider-login/", views.rider_login_page),
     path("rider-register/", views.rider_register_page),
+    path("rider-login/", views.rider_login_page),
+    path("rider-dashboard/", views.rider_dashboard_page, name="rider_dashboard"),
+    path("rider-orders/", views.rider_orders_page, name="rider_orders"),
 
     path("api/admin/riders/", views.admin_riders),
     path("api/admin/orders/", views.admin_orders),
     path("api/admin/orders/<int:order_id>/assign-rider/", views.assign_rider_to_order),
 
     path("api/rider/orders/", views.rider_orders),
+    path("api/rider/picked-order/<int:order_id>/", views.update_rider_picked_order),
 
     # ================= REPORT =================
     path("api/reviews/<int:review_id>/report/", views.report_review),
