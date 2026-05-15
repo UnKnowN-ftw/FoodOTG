@@ -1,3 +1,13 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:pipenv"
+    "python-envs.defaultEnvManager": "ms-python.python:pipenv",
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "Test",
+            "group": "None",
+            "database": "db.sqlite3"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
 }
