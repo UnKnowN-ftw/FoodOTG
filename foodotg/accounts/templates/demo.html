@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order List</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f4f6f9;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #4a90e2;
+      color: white;
+    }
+
+    th,
+    td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    tbody tr:hover {
+      background: #f1f1f1;
+    }
+
+    .status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: white;
+      display: inline-block;
+    }
+
+    .pending {
+      background: orange;
+    }
+
+    .completed {
+      background: green;
+    }
+
+    .cancelled {
+      background: crimson;
+    }
+
+    @media (max-width: 768px) {
+      table {
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>Order List</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Product</th>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>#1001</td>
+          <td>John Doe</td>
+          <td>Laptop</td>
+          <td>14 May 2026</td>
+          <td>$850</td>
+          <td><span class="status completed">Completed</span></td>
+        </tr>
+
+        <tr>
+          <td>#1002</td>
+          <td>Sarah Khan</td>
+          <td>Smartphone</td>
+          <td>13 May 2026</td>
+          <td>$420</td>
+          <td><span class="status pending">Pending</span></td>
+        </tr>
+
+        <tr>
+          <td>#1003</td>
+          <td>Michael Lee</td>
+          <td>Headphones</td>
+          <td>12 May 2026</td>
+          <td>$120</td>
+          <td><span class="status cancelled">Cancelled</span></td>
+        </tr>
+
+        <tr>
+          <td>#1004</td>
+          <td>Emma Watson</td>
+          <td>Keyboard</td>
+          <td>11 May 2026</td>
+          <td>$75</td>
+          <td><span class="status completed">Completed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
