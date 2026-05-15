@@ -2,12 +2,13 @@ from decimal import Decimal
 import uuid
 
 from django.conf import settings
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Avg
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -15,7 +16,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Rider
+from .models import Rider, Order
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import parser_classes
 from django.http import HttpResponse
@@ -98,6 +99,7 @@ def user_login(request):
     user = authenticate(username=email, password=password)
 
     if user:
+        login(request, user)
         refresh = RefreshToken.for_user(user)
 
         try:
@@ -122,6 +124,7 @@ def user_login(request):
 
 @api_view(["POST"])
 def user_logout(request):
+    logout(request)
     return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
 
 
@@ -1741,7 +1744,23 @@ def admin_update_review_status(request, review_id):
 
 
 def rider_dashboard_page(request):
-    return render(request, "rider_dashboard.html")
+
+    # All orders
+    # orders = Order.objects.all()
+    # orders = Order.objects.select_related('customer', 'restaurant').all()
+    orders_with_items = Order.objects.select_related('customer', 'restaurant') \
+                                     .prefetch_related('items') \
+                                     .filter(rider__isnull=True, status='confirmed') \
+                                     .order_by('-created_at')
+
+    context = {
+        'orders': orders_with_items,
+    }
+
+    return render(request, "rider_dashboard.html", context)
+
+def rider_orders_page(request):
+    return render(request, "rider_orders.html")
 
 
 def is_rider_user(user):
@@ -1914,6 +1933,24 @@ def rider_orders(request):
         )
 
     return Response(data)
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_rider_picked_order(request, order_id):
+    if not is_rider_user(request.user):
+        return Response({"error": "Unauthorized"}, status=403)
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+
+    # Update rider id in specific order
+    order.rider = request.user.rider_profile
+    order.save(update_fields=["rider"])
+
+    return Response({"message": "Order status updated successfully"})
 
 
 # TEMP store (for demo; later use DB model)
