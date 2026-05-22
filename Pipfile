@@ -5,12 +5,12 @@ name = "pypi"
 
 [packages]
 pipenv = "*"
-pillow = "*"
-reportlab = "*"
-selenium = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
 django = "*"
+pillow = "*"
+reportlab = "*"
+selenium = "*"
 
 [dev-packages]
 
